@@ -1,0 +1,347 @@
+from __future__ import annotations
+
+from core.ast_nodes import (
+    AccesoIndice,
+    Asignacion,
+    CasoSuceso,
+    Concluir,
+    Consultar,
+    DeclaracionPista,
+    EvaluarSi,
+    Escena,
+    Expresion,
+    Identificador,
+    ListaLiteral,
+    Literal,
+    OperacionAritmetica,
+    OperacionLogica,
+    OperacionRelacional,
+    Programa,
+    Proceso,
+    Rastrear,
+    Resolver,
+    Revelar,
+    SeguirMientras,
+    Suceso,
+    TableroLiteral,
+)
+from core.errors import ErrorSemantico
+from core.symbols import TablaSimbolos
+
+TIPOS_NO_OPERABLES = {"expresion", "declaracion", "sin_pista"}
+
+
+class AnalizadorSemantico:
+    """Recorre el AST y valida las reglas de Enigma antes de ejecutar."""
+
+    def __init__(self, programa: Programa):
+        self.programa = programa
+        self.archivo = programa.archivo_origen
+        self.tabla = TablaSimbolos(self.archivo)
+        self._linea_actual = 0
+        self._tipo_retorno: str | None = None  
+
+
+    def analizar(self) -> None:
+        self._registrar_funciones()
+        self._validar_globales()
+        self._validar_funciones()
+        self._validar_caso_principal()
+
+
+    def _registrar_funciones(self) -> None:
+        for nombre, funcion in self.programa.funciones.items():
+            tipo = "escena" if isinstance(funcion, Escena) else "proceso"
+            self.tabla.declarar(nombre, tipo, es_constante=False, linea=funcion.linea)
+
+    def _validar_globales(self) -> None:
+        for declaracion in self.programa.declaraciones_globales:
+            self._validar_sentencia(declaracion)
+
+    def _validar_funciones(self) -> None:
+        for nombre, funcion in self.programa.funciones.items():
+            self.tabla.entrar_ambito(nombre)
+            for parametro in funcion.parametros:
+                self.tabla.declarar(parametro.nombre, parametro.tipo, False, funcion.linea)
+
+            self._tipo_retorno = funcion.tipo_retorno if isinstance(funcion, Escena) else None
+            self._validar_cuerpo(funcion.cuerpo)
+            self._tipo_retorno = None
+            self.tabla.salir_ambito()
+
+    def _validar_caso_principal(self) -> None:
+        caso = self.programa.caso_principal
+        self.tabla.entrar_ambito(caso.nombre)
+        self._validar_cuerpo(caso.cuerpo)
+        self.tabla.salir_ambito()
+
+
+    def _validar_cuerpo(self, sentencias: list) -> None:
+        for sentencia in sentencias:
+            self._validar_sentencia(sentencia)
+
+    def _validar_sentencia(self, sentencia) -> None:
+        self._linea_actual = getattr(sentencia, "linea", self._linea_actual)
+
+        if isinstance(sentencia, DeclaracionPista):
+            self._validar_declaracion(sentencia)
+        elif isinstance(sentencia, Asignacion):
+            self._validar_asignacion(sentencia)
+        elif isinstance(sentencia, Revelar):
+            for argumento in sentencia.argumentos:
+                self._tipo_de(argumento)
+        elif isinstance(sentencia, Consultar):
+            self._validar_consultar(sentencia)
+        elif isinstance(sentencia, Resolver):
+            self._validar_llamada(sentencia)
+        elif isinstance(sentencia, Concluir):
+            self._validar_concluir(sentencia)
+        elif isinstance(sentencia, EvaluarSi):
+            self._validar_evaluar_si(sentencia)
+        elif isinstance(sentencia, Suceso):
+            self._validar_suceso(sentencia)
+        elif isinstance(sentencia, Rastrear):
+            self._validar_rastrear(sentencia)
+        elif isinstance(sentencia, SeguirMientras):
+            self._validar_seguir_mientras(sentencia)
+
+    def _validar_declaracion(self, decl: DeclaracionPista) -> None:
+        tipo = self._tipo_de(decl.valor)
+        self.tabla.declarar(decl.nombre, tipo, decl.es_constante, decl.linea)
+
+    def _validar_asignacion(self, asig: Asignacion) -> None:
+        simbolo = self._buscar_variable(asig.nombre)
+
+        if simbolo.es_constante:
+            raise self._error(
+                pista=f"La pista '{asig.nombre}' es un hecho y no puede cambiar.",
+                descripcion=f"'{asig.nombre}' fue declarada con 'hecho' en la linea {simbolo.linea}.",
+                causa="Se intentó reasignar una constante.",
+            )
+
+        tipo_valor = self._tipo_de(asig.valor)
+        if not self._compatible(simbolo.tipo, tipo_valor):
+            raise self._error(
+                pista=f"El tipo de '{asig.nombre}' no coincide con el valor asignado.",
+                descripcion=f"'{asig.nombre}' es de tipo '{simbolo.tipo}' pero se le asignó '{tipo_valor}'.",
+                causa="La expresión que se asigna no es compatible con el tipo de la variable.",
+            )
+
+    def _validar_consultar(self, consulta: Consultar) -> None:
+        simbolo = self._buscar_variable(consulta.variable)
+        if simbolo.es_constante:
+            raise self._error(
+                pista=f"No se puede consultar sobre el hecho '{consulta.variable}'.",
+                descripcion=f"'{consulta.variable}' es una constante y no acepta nuevos valores.",
+                causa="Se usó 'consultar' sobre una variable declarada con 'hecho'.",
+            )
+
+    def _validar_llamada(self, llamada: Resolver) -> None:
+        funcion = self.programa.funciones.get(llamada.nombre)
+        if funcion is None:
+            raise self._error(
+                pista=f"La función '{llamada.nombre}' no fue encontrada.",
+                descripcion=f"No existe ninguna escena o proceso llamado '{llamada.nombre}'.",
+                causa="Nombre mal escrito o función no definida.",
+            )
+
+        if len(llamada.argumentos) != len(funcion.parametros):
+            raise self._error(
+                pista=f"'{llamada.nombre}' espera {len(funcion.parametros)} argumento(s).",
+                descripcion=f"Se enviaron {len(llamada.argumentos)} argumento(s).",
+                causa="La cantidad de argumentos no coincide con los parámetros de la función.",
+            )
+
+        for argumento, parametro in zip(llamada.argumentos, funcion.parametros):
+            tipo_arg = self._tipo_de(argumento)
+            if not self._compatible(parametro.tipo, tipo_arg):
+                raise self._error(
+                    pista=f"Un argumento no encaja con el parámetro '{parametro.nombre}'.",
+                    descripcion=f"Se esperaba '{parametro.tipo}' pero se envió '{tipo_arg}'.",
+                    causa="Tipo de argumento incompatible con el parámetro.",
+                )
+
+    def _validar_concluir(self, concluir: Concluir) -> None:
+        if self._tipo_retorno is None:
+            raise self._error(
+                pista="'concluir' solo puede usarse dentro de una escena.",
+                descripcion="Se encontró 'concluir' fuera de una escena o dentro de un proceso.",
+                causa="Un proceso no devuelve valor; solo las escenas pueden usar 'concluir'.",
+            )
+
+        tipo_valor = self._tipo_de(concluir.valor)
+        if not self._compatible(self._tipo_retorno, tipo_valor):
+            raise self._error(
+                pista="El valor devuelto no coincide con el tipo de la escena.",
+                descripcion=f"La escena devuelve '{self._tipo_retorno}' pero se concluyó con '{tipo_valor}'.",
+                causa="Tipo de retorno incompatible.",
+            )
+
+    def _validar_evaluar_si(self, bloque: EvaluarSi) -> None:
+        self._validar_condicion(bloque.rama_si.condicion)
+        self._validar_bloque_en_ambito("evaluar si", bloque.rama_si.cuerpo)
+
+        for rama in bloque.ramas_sino_evaluar:
+            self._validar_condicion(rama.condicion)
+            self._validar_bloque_en_ambito("sino evaluar", rama.cuerpo)
+
+        if bloque.cuerpo_sino is not None:
+            self._validar_bloque_en_ambito("sino", bloque.cuerpo_sino)
+
+    def _validar_suceso(self, bloque: Suceso) -> None:
+        self._tipo_de(bloque.variable)
+        for caso in bloque.casos:
+            self._validar_condicion(caso.condicion)
+            self._validar_bloque_en_ambito(f"suceso {caso.numero}", caso.cuerpo)
+
+    def _validar_rastrear(self, bloque: Rastrear) -> None:
+        for limite in (bloque.desde, bloque.hasta):
+            if self._tipo_de(limite) != "entero":
+                raise self._error(
+                    pista="Los límites de 'rastrear' deben ser enteros.",
+                    descripcion=f"El límite es de tipo '{self._tipo_de(limite)}'.",
+                    causa="Un decimal no puede usarse como contador de un ciclo 'rastrear'.",
+                )
+
+        self.tabla.entrar_ambito("rastrear")
+        self.tabla.declarar(bloque.variable, "entero", es_constante=False, linea=bloque.linea)
+        self._validar_cuerpo(bloque.cuerpo)
+        self.tabla.salir_ambito()
+
+    def _validar_seguir_mientras(self, bloque: SeguirMientras) -> None:
+        self._validar_condicion(bloque.condicion)
+        self._validar_bloque_en_ambito("seguir mientras", bloque.cuerpo)
+
+
+    def _validar_condicion(self, condicion) -> None:
+        tipo = self._tipo_de(condicion)
+        if tipo != "declaracion":
+            raise self._error(
+                pista="Una condición debe ser verdadera o falsa.",
+                descripcion=f"La condición produce un valor de tipo '{tipo}', no 'declaracion'.",
+                causa="Se usó un valor que no es lógico como condición.",
+            )
+
+    def _validar_bloque_en_ambito(self, nombre: str, sentencias: list) -> None:
+        self.tabla.entrar_ambito(nombre)
+        self._validar_cuerpo(sentencias)
+        self.tabla.salir_ambito()
+
+    def _tipo_de(self, expr: Expresion) -> str:
+        """Infiere el tipo de una expresión y valida su contenido."""
+        if isinstance(expr, Literal):
+            return expr.tipo
+
+        if isinstance(expr, Identificador):
+            return self._buscar_variable(expr.nombre).tipo
+
+        if isinstance(expr, OperacionAritmetica):
+            return self._tipo_aritmetico(expr)
+
+        if isinstance(expr, OperacionLogica):
+            self._validar_condicion(expr.izquierda)
+            if expr.derecha is not None:
+                self._validar_condicion(expr.derecha)
+            return "declaracion"
+
+        if isinstance(expr, OperacionRelacional):
+            tipo_izq = self._tipo_de(expr.izquierda)
+            tipo_der = self._tipo_de(expr.derecha)
+            if not (self._compatible(tipo_izq, tipo_der) or self._compatible(tipo_der, tipo_izq)):
+                raise self._error(
+                    pista="Solo se pueden comparar valores del mismo tipo.",
+                    descripcion=f"Se comparó '{tipo_izq}' con '{tipo_der}'.",
+                    causa="Comparación entre tipos incompatibles.",
+                )
+            return "declaracion"
+
+        if isinstance(expr, ListaLiteral):
+            return f"pistas:{expr.tipo_elemento}"
+
+        if isinstance(expr, TableroLiteral):
+            return f"tablero:{expr.tipo_elemento}"
+
+        if isinstance(expr, AccesoIndice):
+            return self._tipo_de_acceso(expr)
+
+        raise self._error(
+            pista="Expresión no reconocida.",
+            descripcion=f"El nodo '{type(expr).__name__}' no es una expresión válida.",
+            causa="Error interno del parser o del árbol.",
+        )
+
+    def _tipo_aritmetico(self, expr: OperacionAritmetica) -> str:
+        tipos = [self._tipo_de(operando) for operando in expr.operandos]
+
+        for tipo in tipos:
+            if tipo in TIPOS_NO_OPERABLES:
+                raise self._error(
+                    pista=f"No se puede '{expr.operador}' un valor de tipo '{tipo}'.",
+                    descripcion="Solo 'entero' y 'decimal' participan en operaciones aritméticas.",
+                    causa="Se usó un valor no numérico en una operación.",
+                )
+
+        if expr.operador in ("descartar", "intensificar", "repartir") and len(tipos) != 2:
+            raise self._error(
+                pista=f"'{expr.operador}' necesita exactamente dos valores.",
+                descripcion=f"Se enviaron {len(tipos)} valor(es).",
+                causa="Cantidad incorrecta de argumentos en una operación.",
+            )
+
+        if expr.operador == "repartir":
+            return "decimal"
+
+        return "decimal" if "decimal" in tipos else "entero"
+
+    def _tipo_de_acceso(self, expr: AccesoIndice) -> str:
+        tipo_base = self._tipo_de(expr.base)
+        if not (tipo_base.startswith("pistas:") or tipo_base.startswith("tablero:")):
+            raise self._error(
+                pista="Solo las listas y tableros se pueden indexar.",
+                descripcion=f"Se intentó indexar un valor de tipo '{tipo_base}'.",
+                causa="Uso de [] sobre una variable que no es lista ni tablero.",
+            )
+
+        for indice in expr.indices:
+            if self._tipo_de(indice) != "entero":
+                raise self._error(
+                    pista="Los índices deben ser enteros.",
+                    descripcion="Un índice no es de tipo 'entero'.",
+                    causa="Se usó un decimal o un texto como posición.",
+                )
+
+        return tipo_base.split(":", 1)[1]
+
+
+    def _buscar_variable(self, nombre: str):
+        simbolo = self.tabla.buscar(nombre)
+        if simbolo is None:
+            raise self._error(
+                pista=f"La pista '{nombre}' no ha sido declarada.",
+                descripcion=f"No se encontró ninguna variable llamada '{nombre}' en este alcance.",
+                causa="Falta declarar la variable con 'pista' o 'hecho', o el nombre está mal escrito.",
+            )
+        return simbolo
+
+    def _compatible(self, destino: str, origen: str) -> bool:
+        """¿Puede un valor de tipo 'origen' guardarse o usarse donde se espera 'destino'?"""
+        if origen == "sin_pista":
+            return True
+        if destino == origen:
+            return True
+        return destino == "decimal" and origen == "entero"
+
+    def _error(self, pista: str, descripcion: str, causa: str) -> ErrorSemantico:
+        return ErrorSemantico(
+            tipo="semantica",
+            archivo=self.archivo,
+            linea=self._linea_actual,
+            pista=pista,
+            descripcion=descripcion,
+            causa_posible=causa,
+        )
+
+
+def analizar(programa: Programa) -> None:
+    """Función de conveniencia: valida el programa o lanza ErrorSemantico."""
+    AnalizadorSemantico(programa).analizar()

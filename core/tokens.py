@@ -6,11 +6,11 @@ from typing import Any, Optional
 class TipoToken(Enum):
     PISTA = auto()
     HECHO = auto()
-    VALOE = auto()
+    VALOR = auto()
 
     CASO = auto()
     ABIERTO = auto()
-    CERRADP = auto()
+    CERRADO = auto()
 
     REVELAR = auto()
     CONSULTAR = auto()
@@ -53,7 +53,7 @@ class TipoToken(Enum):
     NO_CULPABLE = auto()
     SIN_PISTA = auto()
 
-    INDENTIFICADOR = auto()
+    IDENTIFICADOR = auto()
     NUMERO_ENTERO = auto()
     NUMERO_DECIMAL = auto()
     CADENA_TEXTO = auto()

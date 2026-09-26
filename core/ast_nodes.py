@@ -43,6 +43,7 @@ class Asignacion:
     nombre: str
     valor: "Expresion"
     linea: int
+    indices: Optional[list["Expresion"]] = None  # None = asignacion simple; lista = celda[i][j] = valor
 
 
 # ---------- Entrada / Salida ----------

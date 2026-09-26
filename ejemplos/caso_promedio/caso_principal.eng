@@ -1,0 +1,22 @@
+escena CalcularPromedio(a: entero, b: entero)::decimal inicio
+    concluir repartir(conectar(a, b), 2)!
+fin!
+
+caso CasoPromedio abierto
+    pista nota1 = entero(valor: 15)!
+    pista nota2 = entero(valor: 18)!
+    hecho notaMinima = entero(valor: 10)!
+
+    evaluar si (nota1 < notaMinima) inicio
+        revelar('El sospechoso reprobo la primera nota.')!
+    fin!
+    sino inicio
+        revelar('El sospechoso aprobo la primera nota.')!
+    fin!
+
+    rastrear intento desde 1 hasta 3 inicio
+        revelar('Intento numero:', intento)!
+    fin!
+
+    resolver CalcularPromedio(nota1, nota2)!
+caso CasoPromedio cerrado!

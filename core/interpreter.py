@@ -27,16 +27,11 @@ from core.errors import ErrorDeEjecucion
 
 
 class _SenalRetorno(Exception):
-    """No es un error: se usa para salir de ciclos/condicionales cuando
-    una escena ejecuta 'concluir'. La captura el llamador de la función."""
-
     def __init__(self, valor):
         self.valor = valor
 
 
 class Entorno:
-    """Pila de ámbitos, igual que TablaSimbolos, pero guarda VALORES, no tipos."""
-
     def __init__(self):
         self._ambitos: list[dict[str, object]] = [{}]
 
@@ -54,7 +49,6 @@ class Entorno:
             if nombre in ambito:
                 ambito[nombre] = valor
                 return
-
         self._ambitos[0][nombre] = valor
 
     def obtener(self, nombre: str):
@@ -64,14 +58,12 @@ class Entorno:
         raise KeyError(nombre)
 
 
-
 class Interprete:
     def __init__(self, programa: Programa):
         self.programa = programa
         self.archivo = programa.archivo_origen
         self.entorno = Entorno()
         self._linea_actual = 0
-
 
     def ejecutar(self) -> None:
         for declaracion in self.programa.declaraciones_globales:
@@ -82,10 +74,9 @@ class Interprete:
             for sentencia in self.programa.caso_principal.cuerpo:
                 self._ejecutar_sentencia(sentencia, self.entorno)
         except _SenalRetorno:
-            pass 
+            pass
         finally:
             self.entorno.salir_ambito()
-
 
     def _ejecutar_sentencia(self, sentencia, entorno: Entorno) -> None:
         self._linea_actual = getattr(sentencia, "linea", self._linea_actual)
@@ -96,7 +87,10 @@ class Interprete:
 
         elif isinstance(sentencia, Asignacion):
             valor = self._evaluar(sentencia.valor, entorno)
-            entorno.asignar(sentencia.nombre, valor)
+            if sentencia.indices:
+                self._asignar_indexado(sentencia, valor, entorno)
+            else:
+                entorno.asignar(sentencia.nombre, valor)
 
         elif isinstance(sentencia, Revelar):
             valores = [self._evaluar(arg, entorno) for arg in sentencia.argumentos]
@@ -124,6 +118,29 @@ class Interprete:
 
         elif isinstance(sentencia, SeguirMientras):
             self._ejecutar_seguir_mientras(sentencia, entorno)
+
+    def _asignar_indexado(self, asignacion: Asignacion, valor, entorno: Entorno) -> None:
+        coleccion = entorno.obtener(asignacion.nombre)
+        indices = [self._evaluar(indice, entorno) for indice in asignacion.indices]
+
+        for indice in indices[:-1]:
+            try:
+                coleccion = coleccion[indice]
+            except IndexError:
+                raise self._error_ejecucion(
+                    pista="El índice se sale del rango de la colección.",
+                    descripcion=f"Se intentó acceder a la posición {indice} al asignar.",
+                    causa="El índice es mayor o igual al tamaño de la lista o tablero.",
+                )
+
+        try:
+            coleccion[indices[-1]] = valor
+        except IndexError:
+            raise self._error_ejecucion(
+                pista="El índice se sale del rango de la colección.",
+                descripcion=f"Se intentó asignar en la posición {indices[-1]}.",
+                causa="El índice es mayor o igual al tamaño de la lista o tablero.",
+            )
 
     def _ejecutar_bloque(self, sentencias: list, entorno: Entorno) -> None:
         entorno.entrar_ambito()
@@ -170,7 +187,6 @@ class Interprete:
     def _ejecutar_seguir_mientras(self, bloque: SeguirMientras, entorno: Entorno) -> None:
         while self._evaluar(bloque.condicion, entorno):
             self._ejecutar_bloque(bloque.cuerpo, entorno)
-
 
     def _evaluar(self, expr, entorno: Entorno):
         if isinstance(expr, Literal):
@@ -231,7 +247,7 @@ class Interprete:
                     descripcion=f"repartir({valores[0]}, {valores[1]}) es indefinido.",
                     causa="El segundo valor de una división es cero.",
                 )
-            return valores[0] / valores[1]  # siempre decimal, según lo acordado
+            return valores[0] / valores[1]
 
         raise self._error_ejecucion(
             pista="Operador aritmético desconocido.",
@@ -285,7 +301,6 @@ class Interprete:
                 )
         return valor
 
-
     def _llamar_funcion(self, llamada: Resolver):
         funcion = self.programa.funciones[llamada.nombre]
         argumentos = [self._evaluar(arg, self.entorno) for arg in llamada.argumentos]
@@ -316,7 +331,6 @@ class Interprete:
             return None
         finally:
             self.entorno.salir_ambito()
-
 
     def _formatear(self, valor) -> str:
         if valor is True:
@@ -351,5 +365,4 @@ class Interprete:
 
 
 def ejecutar(programa: Programa) -> None:
-    """Función de conveniencia: valida no se hace aquí, solo ejecuta."""
     Interprete(programa).ejecutar()

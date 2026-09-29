@@ -32,22 +32,18 @@ TIPOS_NO_OPERABLES = {"expresion", "declaracion", "sin_pista"}
 
 
 class AnalizadorSemantico:
-    """Recorre el AST y valida las reglas de Enigma antes de ejecutar."""
-
     def __init__(self, programa: Programa):
         self.programa = programa
         self.archivo = programa.archivo_origen
         self.tabla = TablaSimbolos(self.archivo)
         self._linea_actual = 0
-        self._tipo_retorno: str | None = None  
-
+        self._tipo_retorno: str | None = None
 
     def analizar(self) -> None:
         self._registrar_funciones()
         self._validar_globales()
         self._validar_funciones()
         self._validar_caso_principal()
-
 
     def _registrar_funciones(self) -> None:
         for nombre, funcion in self.programa.funciones.items():
@@ -74,7 +70,6 @@ class AnalizadorSemantico:
         self.tabla.entrar_ambito(caso.nombre)
         self._validar_cuerpo(caso.cuerpo)
         self.tabla.salir_ambito()
-
 
     def _validar_cuerpo(self, sentencias: list) -> None:
         for sentencia in sentencias:
@@ -109,8 +104,14 @@ class AnalizadorSemantico:
         tipo = self._tipo_de(decl.valor)
         self.tabla.declarar(decl.nombre, tipo, decl.es_constante, decl.linea)
 
+    # ---------- Asignacion (simple e indexada) ----------
+
     def _validar_asignacion(self, asig: Asignacion) -> None:
         simbolo = self._buscar_variable(asig.nombre)
+
+        if asig.indices is not None:
+            self._validar_asignacion_indexada(asig, simbolo)
+            return
 
         if simbolo.es_constante:
             raise self._error(
@@ -125,6 +126,38 @@ class AnalizadorSemantico:
                 pista=f"El tipo de '{asig.nombre}' no coincide con el valor asignado.",
                 descripcion=f"'{asig.nombre}' es de tipo '{simbolo.tipo}' pero se le asignó '{tipo_valor}'.",
                 causa="La expresión que se asigna no es compatible con el tipo de la variable.",
+            )
+
+    def _validar_asignacion_indexada(self, asig: Asignacion, simbolo) -> None:
+        if simbolo.es_constante:
+            raise self._error(
+                pista=f"'{asig.nombre}' es un hecho; sus celdas no pueden cambiar.",
+                descripcion=f"'{asig.nombre}' fue declarada con 'hecho' en la linea {simbolo.linea}.",
+                causa="Se intentó modificar una celda de una constante.",
+            )
+
+        if not (simbolo.tipo.startswith("pistas:") or simbolo.tipo.startswith("tablero:")):
+            raise self._error(
+                pista=f"'{asig.nombre}' no es una lista ni un tablero.",
+                descripcion=f"Solo se puede usar [] sobre 'pistas' o 'tablero'; '{asig.nombre}' es '{simbolo.tipo}'.",
+                causa="Se usaron corchetes sobre una variable que no es una colección.",
+            )
+
+        for indice in asig.indices:
+            if self._tipo_de(indice) != "entero":
+                raise self._error(
+                    pista="Los índices deben ser enteros.",
+                    descripcion="Un índice usado en la asignación no es de tipo 'entero'.",
+                    causa="Se usó un decimal o un texto como posición.",
+                )
+
+        tipo_elemento = simbolo.tipo.split(":", 1)[1]
+        tipo_valor = self._tipo_de(asig.valor)
+        if not self._compatible(tipo_elemento, tipo_valor):
+            raise self._error(
+                pista=f"El valor no coincide con el tipo de los elementos de '{asig.nombre}'.",
+                descripcion=f"Se esperaba '{tipo_elemento}' pero se asignó '{tipo_valor}'.",
+                causa="Tipo incompatible al asignar una celda.",
             )
 
     def _validar_consultar(self, consulta: Consultar) -> None:
@@ -212,7 +245,6 @@ class AnalizadorSemantico:
         self._validar_condicion(bloque.condicion)
         self._validar_bloque_en_ambito("seguir mientras", bloque.cuerpo)
 
-
     def _validar_condicion(self, condicion) -> None:
         tipo = self._tipo_de(condicion)
         if tipo != "declaracion":
@@ -228,7 +260,6 @@ class AnalizadorSemantico:
         self.tabla.salir_ambito()
 
     def _tipo_de(self, expr: Expresion) -> str:
-        """Infiere el tipo de una expresión y valida su contenido."""
         if isinstance(expr, Literal):
             return expr.tipo
 
@@ -264,11 +295,27 @@ class AnalizadorSemantico:
         if isinstance(expr, AccesoIndice):
             return self._tipo_de_acceso(expr)
 
+        if isinstance(expr, Resolver):
+            return self._tipo_de_llamada(expr)
+
         raise self._error(
             pista="Expresión no reconocida.",
             descripcion=f"El nodo '{type(expr).__name__}' no es una expresión válida.",
             causa="Error interno del parser o del árbol.",
         )
+
+    def _tipo_de_llamada(self, llamada: Resolver) -> str:
+        """Permite usar 'resolver Nombre(...)' dentro de una expresión,
+        una vez que el parser lo soporte (ver nota de integración)."""
+        self._validar_llamada(llamada)
+        funcion = self.programa.funciones[llamada.nombre]
+        if isinstance(funcion, Proceso):
+            raise self._error(
+                pista=f"'{llamada.nombre}' no devuelve ningún valor.",
+                descripcion="Un proceso no puede usarse dentro de una expresión.",
+                causa="Se intentó usar el resultado de un proceso como si fuera un valor.",
+            )
+        return funcion.tipo_retorno
 
     def _tipo_aritmetico(self, expr: OperacionAritmetica) -> str:
         tipos = [self._tipo_de(operando) for operando in expr.operandos]
@@ -312,7 +359,6 @@ class AnalizadorSemantico:
 
         return tipo_base.split(":", 1)[1]
 
-
     def _buscar_variable(self, nombre: str):
         simbolo = self.tabla.buscar(nombre)
         if simbolo is None:
@@ -324,12 +370,15 @@ class AnalizadorSemantico:
         return simbolo
 
     def _compatible(self, destino: str, origen: str) -> bool:
-        """¿Puede un valor de tipo 'origen' guardarse o usarse donde se espera 'destino'?"""
         if origen == "sin_pista":
             return True
         if destino == origen:
             return True
-        return destino == "decimal" and origen == "entero"
+        if destino == "decimal" and origen == "entero":
+            return True
+        if destino in ("pistas", "tablero") and origen.startswith(destino + ":"):
+            return True
+        return False
 
     def _error(self, pista: str, descripcion: str, causa: str) -> ErrorSemantico:
         return ErrorSemantico(
@@ -343,5 +392,4 @@ class AnalizadorSemantico:
 
 
 def analizar(programa: Programa) -> None:
-    """Función de conveniencia: valida el programa o lanza ErrorSemantico."""
     AnalizadorSemantico(programa).analizar()

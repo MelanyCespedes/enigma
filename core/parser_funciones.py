@@ -56,14 +56,20 @@ class _FuncionesMixin:
 
     # llamada y retorno
 
-    def _parsear_resolver(self) -> Resolver:
+    def _parsear_llamada_resolver(self) -> Resolver:
+        """Parsea 'resolver Nombre(args)' sin consumir el sello final.
+        La usan tanto la sentencia 'resolver ...!' como las expresiones."""
         token_resolver = self._esperar(TipoToken.RESOLVER)
         nombre = self._esperar(TipoToken.IDENTIFICADOR)
         self._esperar(TipoToken.PARENTESIS_IZQ)
         argumentos = [] if self._verificar(TipoToken.PARENTESIS_DER) else self._parsear_argumentos()
         self._esperar(TipoToken.PARENTESIS_DER)
-        self._esperar(TipoToken.SELLO)
         return Resolver(nombre=nombre.lexema, argumentos=argumentos, linea=token_resolver.linea)
+
+    def _parsear_resolver(self) -> Resolver:
+        llamada = self._parsear_llamada_resolver()
+        self._esperar(TipoToken.SELLO)
+        return llamada
 
     def _parsear_concluir(self) -> Concluir:
         token_concluir = self._esperar(TipoToken.CONCLUIR)

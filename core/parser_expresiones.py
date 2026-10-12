@@ -139,6 +139,9 @@ class _ExpresionesMixin:
             self._avanzar()
             return Literal(tipo="sin_pista", valor=None)
 
+        if token.tipo == TipoToken.RESOLVER:
+            return self._parsear_llamada_resolver()
+
         raise ErrorSintactico(
             tipo="Expresion invalida",
             archivo=self.nombre_archivo,

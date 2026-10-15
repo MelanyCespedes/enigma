@@ -141,3 +141,51 @@ def test_caracter_invalido_lanza_error_lexico():
     with pytest.raises(ErrorLexico) as info:
         tokenizar(codigo, "prueba.eng")
     assert info.value.archivo == "prueba.eng"
+
+
+def _tipos(codigo):
+    return [t.tipo for t in tokenizar(codigo, "prueba.eng")]
+
+
+def test_comentario_al_inicio_se_ignora():
+    tipos = _tipos("{ Caso: La coartada imposible }\npista x = entero(valor: 1)!")
+    assert tipos[0] == TipoToken.PISTA
+    assert tipos[-1] == TipoToken.FIN_DE_ARCHIVO
+
+
+def test_comentario_en_medio_de_la_linea():
+    assert _tipos("pista { nota } x = entero(valor: 1)!") == _tipos("pista x = entero(valor: 1)!")
+
+
+def test_comentario_de_varias_lineas_mantiene_numeracion():
+    tokens = tokenizar("{ linea 1\nlinea 2\nlinea 3 }\npista", "prueba.eng")
+    assert tokens[0].tipo == TipoToken.PISTA
+    assert tokens[0].linea == 4
+    assert tokens[0].columna == 1
+
+
+def test_columna_despues_de_comentario():
+    tokens = tokenizar("{ab} pista", "prueba.eng")
+    assert tokens[0].linea == 1
+    assert tokens[0].columna == 6
+
+
+def test_comentario_vacio():
+    assert _tipos("{}!") == [TipoToken.SELLO, TipoToken.FIN_DE_ARCHIVO]
+
+
+def test_comentario_sin_cerrar_lanza_error_lexico():
+    with pytest.raises(ErrorLexico) as info:
+        tokenizar("pista x\n{ comentario sin fin\n!", "prueba.eng")
+    assert info.value.linea == 2
+
+
+def test_llave_de_cierre_suelta_lanza_error_lexico():
+    with pytest.raises(ErrorLexico):
+        tokenizar("pista x }", "prueba.eng")
+
+
+def test_llave_dentro_de_cadena_no_es_comentario():
+    tokens = tokenizar("revelar('hola { mundo')!", "prueba.eng")
+    cadenas = [t for t in tokens if t.tipo == TipoToken.CADENA_TEXTO]
+    assert cadenas[0].valor == "hola { mundo"

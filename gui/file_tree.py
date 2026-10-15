@@ -3,7 +3,9 @@ from __future__ import annotations
 import json
 import os
 import tkinter as tk
-from tkinter import filedialog, messagebox, simpledialog, ttk
+from tkinter import filedialog, ttk
+
+from gui import dialogos
 
 EXTENSION = ".eng"
 ARCHIVO_PROYECTO = ".enigma_proyecto.json"
@@ -29,14 +31,14 @@ class ArbolArchivos(ttk.Frame):
         ttk.Button(barra, text="Abrir carpeta...", command=self._elegir_carpeta).pack(
             side="left", padx=2, pady=2
         )
-        ttk.Button(barra, text="Nuevo archivo", command=self._nuevo_archivo).pack(
+        ttk.Button(barra, text="Nuevo archivo", command=self.nuevo_archivo).pack(
             side="left", padx=2, pady=2
         )
 
         self.arbol = ttk.Treeview(self, show="tree", selectmode="browse")
         self.arbol.pack(fill="both", expand=True)
         self.arbol.tag_configure("principal", font=("TkDefaultFont", 9, "bold"))
-        self.arbol.tag_configure("activo", background="#d8ebff")
+        self.arbol.tag_configure("activo", background="#2d2f45")
 
         self.arbol.bind("<Double-1>", self._al_hacer_doble_clic)
         self.arbol.bind("<Button-3>", self._abrir_menu_contextual)  # click derecho Win/Linux
@@ -140,12 +142,12 @@ class ArbolArchivos(ttk.Frame):
         self.archivo_activo = ruta
         self._refrescar_arbol()
 
-    def _nuevo_archivo(self) -> None:
+    def nuevo_archivo(self) -> None:
         if not self.directorio_proyecto:
-            messagebox.showwarning("Enigma", "Primero abre una carpeta de proyecto.")
+            dialogos.mostrar_aviso(self, "Primero abre una carpeta de proyecto.")
             return
 
-        nombre = simpledialog.askstring("Nuevo archivo", "Nombre del archivo (sin extension):")
+        nombre = dialogos.preguntar_texto(self, "Nuevo archivo", "Nombre del archivo (sin extension):")
         if not nombre:
             return
         if not nombre.endswith(EXTENSION):
@@ -153,7 +155,7 @@ class ArbolArchivos(ttk.Frame):
 
         ruta = os.path.join(self.directorio_proyecto, nombre)
         if os.path.exists(ruta):
-            messagebox.showerror("Enigma", f"Ya existe un archivo llamado '{nombre}'.")
+            dialogos.mostrar_error(self, f"Ya existe un archivo llamado '{nombre}'.")
             return
 
         with open(ruta, "w", encoding="utf-8") as f:
@@ -170,8 +172,8 @@ class ArbolArchivos(ttk.Frame):
             return
 
         nombre_actual = os.path.basename(ruta)
-        nuevo_nombre = simpledialog.askstring(
-            "Renombrar archivo", "Nuevo nombre:", initialvalue=nombre_actual
+        nuevo_nombre = dialogos.preguntar_texto(
+            self, "Renombrar archivo", "Nuevo nombre:", valor_inicial=nombre_actual
         )
         if not nuevo_nombre or nuevo_nombre == nombre_actual:
             return
@@ -180,7 +182,7 @@ class ArbolArchivos(ttk.Frame):
 
         nueva_ruta = os.path.join(self.directorio_proyecto, nuevo_nombre)
         if os.path.exists(nueva_ruta):
-            messagebox.showerror("Enigma", f"Ya existe un archivo llamado '{nuevo_nombre}'.")
+            dialogos.mostrar_error(self, f"Ya existe un archivo llamado '{nuevo_nombre}'.")
             return
 
         os.rename(ruta, nueva_ruta)
@@ -200,7 +202,10 @@ class ArbolArchivos(ttk.Frame):
             return
 
         nombre = os.path.basename(ruta)
-        if not messagebox.askyesno("Enigma", f"¿Eliminar '{nombre}'? Esta accion no se puede deshacer."):
+        if not dialogos.confirmar(
+            self, f"¿Eliminar '{nombre}'? Esta accion no se puede deshacer.",
+            si="Eliminar", no="Cancelar",
+        ):
             return
 
         os.remove(ruta)

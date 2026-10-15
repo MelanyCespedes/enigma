@@ -5,7 +5,7 @@ import contextlib
 import os
 import random
 import tkinter as tk
-from tkinter import simpledialog, ttk
+from tkinter import ttk
 
 from core.errors import PistaFallidaDeRazonamiento
 from core.interpreter import ejecutar
@@ -13,34 +13,35 @@ from core.lexer import tokenizar
 from core.module_resolver import resolver_importaciones
 from core.parser import parsear
 from core.semantic import analizar
+from gui import tema
 
 
 _PISTAS_GENERICAS = {
     "ErrorLexico": [
-        "Hay un simbolo en tu codigo que Enigma no reconoce.",
-        "Puede que haya un simbolo de mas, o que te falte alguno.",
+        "Hay un símbolo en tu código que Enigma no reconoce.",
+        "Puede que haya un símbolo de más, o que te falte alguno.",
     ],
     "ErrorSintactico": [
-        "Puede que te falte un '!' al final de alguna instruccion.",
-        "Revisa que cada bloque que abriste tambien lo hayas cerrado.",
-        "Algo en el orden de tu codigo no es el que Enigma espera.",
+        "Puede que te falte un '!' al final de alguna instrucción.",
+        "Revisa que cada bloque que abriste también lo hayas cerrado.",
+        "Algo en el orden de tu código no es el que Enigma espera.",
     ],
     "ErrorSemantico": [
-        "Quizas olvidaste declarar algo en tu codigo.",
-        "Puede que estes mezclando tipos de datos que no combinan.",
-        "Revisa si intentaste cambiar algo que debia quedar fijo.",
+        "Quizás olvidaste declarar algo en tu código.",
+        "Puede que estés mezclando tipos de datos que no combinan.",
+        "Revisa si intentaste cambiar algo que debía quedar fijo.",
         "Puede que una de tus funciones no reciba lo que esperaba.",
     ],
     "ErrorDeImportacion": [
-        "Puede que un archivo que esperabas usar no este donde lo buscaste.",
-        "Revisa los nombres de los archivos que estas importando.",
+        "Puede que un archivo que esperabas usar no esté donde lo buscaste.",
+        "Revisa los nombres de los archivos que estás importando.",
     ],
     "ErrorDeEjecucion": [
-        "Algo durante la ejecucion no salio como lo planeaste.",
-        "Revisa los valores que le estas dando a tus operaciones.",
+        "Algo durante la ejecución no salió como lo planeaste.",
+        "Revisa los valores que le estás dando a tus operaciones.",
     ],
 }
-_PISTA_POR_DEFECTO = "Hay algo que no cuadra en tu codigo. Revisalo con calma."
+_PISTA_POR_DEFECTO = "Hay algo que no cuadra en tu código. Revísalo con calma."
 
 
 class _EscritorTk:
@@ -84,7 +85,12 @@ class PanelSalida(ttk.Frame):
         contenedor_texto = ttk.Frame(self)
         contenedor_texto.pack(fill="both", expand=True)
 
-        self.texto = tk.Text(contenedor_texto, height=12, state="disabled", wrap="word")
+        self.texto = tk.Text(
+            contenedor_texto, height=12, state="disabled", wrap="word",
+            bg=tema.EDITOR, fg=tema.TEXTO, insertbackground=tema.ACENTO,
+            selectbackground=tema.SELECCION, font=tema.FUENTE_CODIGO, padx=10, pady=8,
+            relief="flat", borderwidth=0, highlightthickness=0,
+        )
         barra_desplazamiento = ttk.Scrollbar(
             contenedor_texto, orient="vertical", command=self.texto.yview
         )
@@ -92,9 +98,9 @@ class PanelSalida(ttk.Frame):
         self.texto.pack(side="left", fill="both", expand=True)
         barra_desplazamiento.pack(side="right", fill="y")
 
-        self.texto.tag_configure("error", foreground="#b00020")
-        self.texto.tag_configure("ok", foreground="#1b7f3b")
-        self.texto.tag_configure("pista", foreground="#b06000")
+        self.texto.tag_configure("error", foreground=tema.ERROR)
+        self.texto.tag_configure("ok", foreground=tema.EXITO)
+        self.texto.tag_configure("pista", foreground=tema.AVISO)
 
 
     def limpiar(self) -> None:
@@ -123,7 +129,7 @@ class PanelSalida(ttk.Frame):
         if firma == self._ultima_firma_error:
             # Segundo intento con exactamente el mismo error.
             self._agregar_texto(
-                "Volviste a encontrar el mismo problema. Aqui esta la explicacion completa:\n",
+                "Volviste a encontrar el mismo problema. Aquí está la explicación completa:\n",
                 "pista",
             )
             self._agregar_texto(error.mostrar_completo() + "\n", "error")
@@ -136,6 +142,66 @@ class PanelSalida(ttk.Frame):
             )
 
         self._ultima_firma_error = firma
+
+    # ---------- entrada de datos (consultar) ----------
+
+    def _leer_en_panel(self, mensaje: str = "") -> str:
+        """Pide un dato escribiendo directamente en el panel, como en una
+        consola. Espera con un bucle de eventos anidado (wait_variable), asi
+        la ventana sigue respondiendo mientras el interprete esta detenido."""
+        if mensaje:
+            self._agregar_texto(mensaje)
+
+        texto = self.texto
+        texto.config(state="normal")
+        texto.mark_set("entrada_inicio", "end-1c")
+        texto.mark_gravity("entrada_inicio", "left")
+        texto.mark_set("insert", "end-1c")
+        texto.see("end")
+        texto.focus_set()
+
+        terminado = tk.BooleanVar(master=self, value=False)
+        resultado = {"valor": ""}
+
+        def antes_de_tecla(evento):
+            # Todo lo que se escriba debe quedar despues de lo ya mostrado.
+            if texto.compare("insert", "<", "entrada_inicio"):
+                texto.mark_set("insert", "end-1c")
+            if evento.keysym in ("BackSpace", "Left") and texto.compare(
+                "insert", "<=", "entrada_inicio"
+            ):
+                return "break"
+            if evento.keysym == "Delete" and texto.compare("insert", "<", "entrada_inicio"):
+                return "break"
+            return None
+
+        def enviar(_evento):
+            resultado["valor"] = texto.get("entrada_inicio", "end-1c").replace("\n", "")
+            texto.insert("end", "\n")
+            terminado.set(True)
+            return "break"
+
+        def al_destruir(_evento):
+            terminado.set(True)
+
+        id_tecla = texto.bind("<Key>", antes_de_tecla, add="+")
+        id_enviar = texto.bind("<Return>", enviar)
+        id_enviar_kp = texto.bind("<KP_Enter>", enviar)
+        id_destruir = self.bind("<Destroy>", al_destruir, add="+")
+
+        self.wait_variable(terminado)
+
+        try:
+            texto.unbind("<Key>", id_tecla)
+            texto.unbind("<Return>", id_enviar)
+            texto.unbind("<KP_Enter>", id_enviar_kp)
+            self.unbind("<Destroy>", id_destruir)
+            texto.config(state="disabled")
+            texto.mark_unset("entrada_inicio")
+        except tk.TclError:
+            pass  # la ventana se cerro mientras se esperaba la entrada
+
+        return resultado["valor"]
 
     # ---------- compilar ----------
 
@@ -167,14 +233,14 @@ class PanelSalida(ttk.Frame):
             analizar(programa)
         except PistaFallidaDeRazonamiento as error:
             self._mostrar_error(error)
-            self.etiqueta_estado.config(text="Compilacion fallida")
+            self.etiqueta_estado.config(text="Compilación fallida")
             return False
 
         self._ultima_firma_error = None  # se resolvio: reinicia el seguimiento
         self.programa_compilado = programa
         self.boton_ejecutar.config(state="normal")
-        self.etiqueta_estado.config(text="Compilacion exitosa")
-        self._agregar_texto("Compilacion exitosa.\n", "ok")
+        self.etiqueta_estado.config(text="Compilación exitosa")
+        self._agregar_texto("Compilación exitosa.\n", "ok")
         return True
 
     # ---------- ejecutar ----------
@@ -184,27 +250,30 @@ class PanelSalida(ttk.Frame):
             if not self.compilar():
                 return
 
-        self._agregar_texto("--- Ejecucion ---\n")
+        self._agregar_texto("--- Ejecución ---\n")
 
         def entrada_grafica(mensaje: str = "") -> str:
-            respuesta = simpledialog.askstring("Entrada de datos", mensaje or "Consultar:")
-            return respuesta or ""
+            return self._leer_en_panel(mensaje)
 
         entrada_original = builtins.input
         builtins.input = entrada_grafica
+        self.boton_compilar.config(state="disabled")
+        self.boton_ejecutar.config(state="disabled")
         try:
             with contextlib.redirect_stdout(_EscritorTk(self)):
                 ejecutar(self.programa_compilado)
         except PistaFallidaDeRazonamiento as error:
             self._mostrar_error(error)
-            self.etiqueta_estado.config(text="Ejecucion con errores")
+            self.etiqueta_estado.config(text="Ejecución con errores")
             return
         finally:
             builtins.input = entrada_original
+            self.boton_compilar.config(state="normal")
+            self.boton_ejecutar.config(state="normal")
 
         self._ultima_firma_error = None
-        self.etiqueta_estado.config(text="Ejecucion finalizada")
-        self._agregar_texto("--- Fin de la ejecucion ---\n", "ok")
+        self.etiqueta_estado.config(text="Ejecución finalizada")
+        self._agregar_texto("--- Fin de la ejecución ---\n", "ok")
 
 
 if __name__ == "__main__":

@@ -4,3 +4,17 @@ __pycache__/
 venv/
 .vscode/
 .idea/
+
+# Configuración local del IDE de Enigma (cuál archivo es el principal, por persona)
+.enigma_proyecto.json
+
+# Entornos virtuales con otros nombres comunes
+.venv/
+env/
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+
+# Capturas y borradores locales (las de documentación van en docs/)
+image.png

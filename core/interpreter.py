@@ -306,6 +306,8 @@ class Interprete:
         funcion = self.programa.funciones[llamada.nombre]
         argumentos = [self._evaluar(arg, self.entorno) for arg in llamada.argumentos]
 
+        archivo_llamador = self.archivo
+        self.archivo = funcion.archivo or self.programa.archivo_origen
         self.entorno.entrar_ambito()
         try:
             for parametro, valor in zip(funcion.parametros, argumentos):
@@ -332,6 +334,7 @@ class Interprete:
             return None
         finally:
             self.entorno.salir_ambito()
+            self.archivo = archivo_llamador
 
     def _formatear(self, valor) -> str:
         if valor is True:

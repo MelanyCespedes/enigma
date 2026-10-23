@@ -3,8 +3,6 @@ from dataclasses import dataclass
 from typing import Optional, Union
 
 # ---------- Programa ----------
-
-
 @dataclass
 class Importacion:
     archivo: str
@@ -29,7 +27,6 @@ class Programa:
 
 # ---------- Declaraciones ----------
 
-
 @dataclass
 class DeclaracionPista:
     nombre: str
@@ -48,7 +45,6 @@ class Asignacion:
 
 # ---------- Entrada / Salida ----------
 
-
 @dataclass
 class Revelar:
     argumentos: list["Expresion"]
@@ -62,7 +58,6 @@ class Consultar:
 
 
 # ---------- Condicionales ----------
-
 
 @dataclass
 class RamaCondicional:
@@ -94,7 +89,6 @@ class Suceso:
 
 # ---------- Ciclos ----------
 
-
 @dataclass
 class Rastrear:
     variable: str
@@ -113,7 +107,6 @@ class SeguirMientras:
 
 # ---------- Funciones ----------
 
-
 @dataclass
 class Parametro:
     nombre: str
@@ -127,6 +120,7 @@ class Escena:  # funcion CON retorno
     tipo_retorno: str
     cuerpo: list
     linea: int
+    archivo: str = ""  # archivo donde se declaro (para reportar errores)
 
 
 @dataclass
@@ -135,6 +129,7 @@ class Proceso:  # funcion SIN retorno
     parametros: list[Parametro]
     cuerpo: list
     linea: int
+    archivo: str = ""  # archivo donde se declaro (para reportar errores)
 
 
 @dataclass
@@ -152,11 +147,12 @@ class Concluir:
 
 # ---------- Expresiones ----------
 
-
 @dataclass
 class Literal:
     tipo: str  # "entero" | "decimal" | "expresion" | "declaracion" | "sin_pista"
     valor: object
+    # Solo para 'entero(valor: sin_pista)': el tipo con que se declaro (aqui "entero")
+    tipo_declarado: str = ""
 
 
 @dataclass

@@ -130,3 +130,103 @@ def test_concluir_fuera_de_escena_lanza_error():
 
     with pytest.raises(ErrorSemantico):
         analizar(programa(cuerpo))
+
+# ---------- pistas declaradas con sin_pista ----------
+
+def _analizar_codigo(codigo):
+    from core.lexer import tokenizar
+    from core.parser import parsear
+    programa = parsear(tokenizar(codigo, "p.eng"), "p.eng")
+    analizar(programa)
+
+
+def test_sin_pista_se_puede_reasignar_a_su_tipo_declarado():
+    _analizar_codigo(
+        "caso P abierto\n"
+        "    pista x = entero(valor: sin_pista)!\n"
+        "    x = entero(valor: 3)!\n"
+        "    revelar(conectar(x, 1))!\n"
+        "caso P cerrado!\n"
+    )
+
+
+def test_sin_pista_rechaza_un_tipo_distinto_al_declarado():
+    with pytest.raises(ErrorSemantico):
+        _analizar_codigo(
+            "caso P abierto\n"
+            "    pista x = entero(valor: sin_pista)!\n"
+            "    x = expresion(valor: 'hola')!\n"
+            "caso P cerrado!\n"
+        )
+
+
+def test_sin_pista_no_se_puede_operar_antes_de_reasignar():
+    with pytest.raises(ErrorSemantico):
+        _analizar_codigo(
+            "caso P abierto\n"
+            "    pista x = entero(valor: sin_pista)!\n"
+            "    revelar(conectar(x, 1))!\n"
+            "caso P cerrado!\n"
+        )
+
+
+def test_consultar_da_valor_a_una_pista_sin_pista():
+    _analizar_codigo(
+        "caso P abierto\n"
+        "    pista x = entero(valor: sin_pista)!\n"
+        "    consultar(x)!\n"
+        "    revelar(conectar(x, 1))!\n"
+        "caso P cerrado!\n"
+    )
+
+
+# ---------- restricciones de los tipos (seccion 5.5 del diseño) ----------
+
+@pytest.mark.parametrize("declaracion", [
+    "entero(valor: 1.5)",
+    "entero(valor: 'a')",
+    "expresion(valor: 3)",
+    "declaracion(valor: 1)",
+    "decimal(valor: 'x')",
+])
+def test_el_valor_de_un_literal_debe_corresponder_a_su_tipo(declaracion):
+    with pytest.raises(ErrorSemantico):
+        _analizar_codigo(f"caso P abierto\n    pista x = {declaracion}!\ncaso P cerrado!\n")
+
+
+@pytest.mark.parametrize("declaracion", [
+    "entero(valor: 3)", "decimal(valor: 3)", "decimal(valor: 3.5)",
+    "expresion(valor: 'a')", "declaracion(valor: culpable)",
+])
+def test_literales_validos_siguen_aceptandose(declaracion):
+    _analizar_codigo(f"caso P abierto\n    pista x = {declaracion}!\ncaso P cerrado!\n")
+
+
+def test_una_lista_no_puede_mezclar_tipos():
+    with pytest.raises(ErrorSemantico):
+        _analizar_codigo("caso P abierto\n    pista l = pistas entero[1, 'a', 3]!\ncaso P cerrado!\n")
+
+
+def test_una_lista_de_un_solo_tipo_es_valida():
+    _analizar_codigo("caso P abierto\n    pista l = pistas entero[1, 2, 3]!\ncaso P cerrado!\n")
+
+
+@pytest.mark.parametrize("operador", [">", "<", ">=", "<="])
+def test_el_texto_no_se_puede_ordenar(operador):
+    with pytest.raises(ErrorSemantico):
+        _analizar_codigo(
+            "caso P abierto\n"
+            "    pista a = expresion(valor: 'a')!\n"
+            f"    evaluar si (a {operador} 'b') inicio\n        revelar(1)!\n    fin!\n"
+            "caso P cerrado!\n"
+        )
+
+
+def test_el_texto_si_se_puede_comparar_por_igualdad():
+    _analizar_codigo(
+        "caso P abierto\n"
+        "    pista a = expresion(valor: 'a')!\n"
+        "    evaluar si (a == 'b') inicio\n        revelar(1)!\n    fin!\n"
+        "    evaluar si (a <> 'b') inicio\n        revelar(2)!\n    fin!\n"
+        "caso P cerrado!\n"
+    )

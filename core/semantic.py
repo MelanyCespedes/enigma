@@ -29,6 +29,15 @@ from core.errors import ErrorSemantico
 from core.symbols import TablaSimbolos
 
 TIPOS_NO_OPERABLES = {"expresion", "declaracion", "sin_pista"}
+OPERADORES_DE_ORDEN = {">", "<", ">=", "<="}
+
+# Tipo de Python que debe tener el valor de cada literal: entero(valor: 15), etc.
+_VALOR_POR_TIPO = {
+    "entero": (int,),
+    "decimal": (int, float),
+    "expresion": (str,),
+    "declaracion": (bool,),
+}
 
 
 class AnalizadorSemantico:
@@ -56,6 +65,7 @@ class AnalizadorSemantico:
 
     def _validar_funciones(self) -> None:
         for nombre, funcion in self.programa.funciones.items():
+            self._usar_archivo(funcion.archivo or self.programa.archivo_origen)
             self.tabla.entrar_ambito(nombre)
             for parametro in funcion.parametros:
                 self.tabla.declarar(parametro.nombre, parametro.tipo, False, funcion.linea)
@@ -64,6 +74,13 @@ class AnalizadorSemantico:
             self._validar_cuerpo(funcion.cuerpo)
             self._tipo_retorno = None
             self.tabla.salir_ambito()
+        self._usar_archivo(self.programa.archivo_origen)
+
+    def _usar_archivo(self, archivo: str) -> None:
+        """Los errores se reportan con el archivo de lo que se esta validando
+        (una funcion importada puede venir de otro archivo)."""
+        self.archivo = archivo
+        self.tabla.archivo = archivo
 
     def _validar_caso_principal(self) -> None:
         caso = self.programa.caso_principal
@@ -102,7 +119,8 @@ class AnalizadorSemantico:
 
     def _validar_declaracion(self, decl: DeclaracionPista) -> None:
         tipo = self._tipo_de(decl.valor)
-        self.tabla.declarar(decl.nombre, tipo, decl.es_constante, decl.linea)
+        declarado = decl.valor.tipo_declarado if isinstance(decl.valor, Literal) else ""
+        self.tabla.declarar(decl.nombre, tipo, decl.es_constante, decl.linea, declarado)
 
     # ---------- Asignacion (simple e indexada) ----------
 
@@ -121,6 +139,8 @@ class AnalizadorSemantico:
             )
 
         tipo_valor = self._tipo_de(asig.valor)
+        if simbolo.tipo == "sin_pista" and tipo_valor != "sin_pista":
+            self._dar_valor_a_sin_pista(simbolo, tipo_valor, asig.nombre)
         if not self._compatible(simbolo.tipo, tipo_valor):
             raise self._error(
                 pista=f"El tipo de '{asig.nombre}' no coincide con el valor asignado.",
@@ -162,6 +182,8 @@ class AnalizadorSemantico:
 
     def _validar_consultar(self, consulta: Consultar) -> None:
         simbolo = self._buscar_variable(consulta.variable)
+        if simbolo.tipo == "sin_pista" and simbolo.tipo_declarado:
+            simbolo.tipo = simbolo.tipo_declarado  # consultar le dara un valor
         if simbolo.es_constante:
             raise self._error(
                 pista=f"No se puede consultar sobre el hecho '{consulta.variable}'.",
@@ -259,8 +281,32 @@ class AnalizadorSemantico:
         self._validar_cuerpo(sentencias)
         self.tabla.salir_ambito()
 
+    def _validar_literal(self, literal: Literal) -> None:
+        """El valor entre parentesis debe corresponder al tipo: entero(valor: 1.5)
+        o expresion(valor: 3) son errores."""
+        esperados = _VALOR_POR_TIPO.get(literal.tipo)
+        if esperados is None:
+            return
+        valor = literal.valor
+        es_bool = isinstance(valor, bool)
+        correcto = isinstance(valor, esperados) and (es_bool == (literal.tipo == "declaracion"))
+        if correcto:
+            return
+        detalle = {
+            "entero": "un número sin decimales",
+            "decimal": "un número",
+            "expresion": "un texto entre comillas simples",
+            "declaracion": "culpable o NoCulpable",
+        }[literal.tipo]
+        raise self._error(
+            pista=f"El valor no corresponde al tipo '{literal.tipo}'.",
+            descripcion=f"'{literal.tipo}' espera {detalle}, pero se escribió {valor!r}.",
+            causa=f"Revisa el valor dentro de {literal.tipo}(valor: ...).",
+        )
+
     def _tipo_de(self, expr: Expresion) -> str:
         if isinstance(expr, Literal):
+            self._validar_literal(expr)
             return expr.tipo
 
         if isinstance(expr, Identificador):
@@ -278,6 +324,17 @@ class AnalizadorSemantico:
         if isinstance(expr, OperacionRelacional):
             tipo_izq = self._tipo_de(expr.izquierda)
             tipo_der = self._tipo_de(expr.derecha)
+            if expr.operador in OPERADORES_DE_ORDEN:
+                for tipo in (tipo_izq, tipo_der):
+                    if tipo in TIPOS_NO_OPERABLES:
+                        raise self._error(
+                            pista=f"No se puede ordenar con '{expr.operador}' un valor de tipo '{tipo}'.",
+                            descripcion=(
+                                f"'{expr.operador}' solo compara 'entero' y 'decimal'; "
+                                f"se encontró '{tipo}'."
+                            ),
+                            causa="Los textos y las declaraciones solo se comparan con == y <>.",
+                        )
             if not (self._compatible(tipo_izq, tipo_der) or self._compatible(tipo_der, tipo_izq)):
                 raise self._error(
                     pista="Solo se pueden comparar valores del mismo tipo.",
@@ -287,6 +344,17 @@ class AnalizadorSemantico:
             return "declaracion"
 
         if isinstance(expr, ListaLiteral):
+            for elemento in expr.elementos:
+                tipo_elemento = self._tipo_de(elemento)
+                if not self._compatible(expr.tipo_elemento, tipo_elemento):
+                    raise self._error(
+                        pista="Una lista no puede mezclar tipos de datos.",
+                        descripcion=(
+                            f"La lista es de '{expr.tipo_elemento}' pero tiene un elemento "
+                            f"de tipo '{tipo_elemento}'."
+                        ),
+                        causa="Todos los elementos de una lista deben ser del mismo tipo.",
+                    )
             return f"pistas:{expr.tipo_elemento}"
 
         if isinstance(expr, TableroLiteral):
@@ -368,6 +436,19 @@ class AnalizadorSemantico:
                 causa="Falta declarar la variable con 'pista' o 'hecho', o el nombre está mal escrito.",
             )
         return simbolo
+
+    def _dar_valor_a_sin_pista(self, simbolo, tipo_valor: str, nombre: str) -> None:
+        """Una pista nacida como 'entero(valor: sin_pista)' pasa a ser un 'entero'
+        al recibir su primer valor (que debe ser compatible con lo declarado)."""
+        if simbolo.tipo_declarado and not self._compatible(simbolo.tipo_declarado, tipo_valor):
+            raise self._error(
+                pista=f"El tipo de '{nombre}' no coincide con el valor asignado.",
+                descripcion=(
+                    f"'{nombre}' se declaró como '{simbolo.tipo_declarado}' pero se le asignó '{tipo_valor}'."
+                ),
+                causa="Se asignó un valor de otro tipo a una pista declarada sin valor inicial.",
+            )
+        simbolo.tipo = simbolo.tipo_declarado or tipo_valor
 
     def _compatible(self, destino: str, origen: str) -> bool:
         if origen == "sin_pista":

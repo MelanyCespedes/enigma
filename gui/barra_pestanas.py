@@ -3,25 +3,16 @@ from __future__ import annotations
 import math
 import tkinter as tk
 
-from gui import tema
+from gui import recursos, tema
+from gui.botones import BotonIcono, BotonPlano  # noqa: F401  (BotonPlano se reexporta para los demas modulos)
 
 CERRAR = "×"
 MODIFICADO = "●"
 
 
-class BotonPlano(tk.Label):
-
-    def __init__(self, master, texto: str, comando, color: str = tema.TEXTO_SUAVE, **kwargs):
-        super().__init__(
-            master, text=texto, bg=tema.FONDO, fg=color, padx=10, pady=5, cursor="hand2", **kwargs
-        )
-        self._color = color
-        self.bind("<Button-1>", lambda e: comando())
-        self.bind("<Enter>", lambda e: self.config(bg=tema.SELECCION_SUAVE, fg=tema.TEXTO))
-        self.bind("<Leave>", lambda e: self.config(bg=tema.FONDO, fg=self._color))
-
-
 class _Pestana(tk.Frame):
+    """Una pestaña: linea amarilla arriba si esta activa, icono, nombre y cierre."""
+
     def __init__(self, master, clave: str, titulo: str, al_seleccionar, al_cerrar):
         super().__init__(master, bg=tema.FONDO)
         self.clave = clave
@@ -29,18 +20,28 @@ class _Pestana(tk.Frame):
         self._modificada = False
         self._sobre = False
 
-        self._subrayado = tk.Frame(self, height=2, bg=tema.FONDO)
-        self._subrayado.pack(side="bottom", fill="x")
-        self._nombre = tk.Label(self, text=titulo, padx=0, pady=6, cursor="hand2")
-        self._nombre.pack(side="left", padx=(12, 6))
-        self._cierre = tk.Label(self, text=" ", width=2, cursor="hand2")
-        self._cierre.pack(side="left", padx=(0, 6))
+        self._linea = tk.Frame(self, height=2, bg=tema.FONDO)
+        self._linea.pack(side="top", fill="x")
+        cuerpo = tk.Frame(self, bg=tema.FONDO)
+        cuerpo.pack(side="top", fill="both", expand=True)
+        self._cuerpo = cuerpo
+        tk.Frame(self, width=1, bg=tema.BORDE).pack(side="right", fill="y")  # separador con la siguiente
 
-        for widget in (self, self._nombre):
-            widget.bind("<Button-1>", lambda e: al_seleccionar(clave))
-        self._cierre.bind("<Button-1>", lambda e: al_cerrar(clave))
-        for widget in (self, self._nombre, self._cierre, self._subrayado):
-            widget.bind("<ButtonRelease-2>", lambda e: al_cerrar(clave))
+        self._icono = tk.Label(cuerpo, image=recursos.icono("archivo_codigo", master=master), bg=tema.FONDO)
+        self._icono.pack(side="left", padx=(16, 8), pady=11)
+        self._nombre = tk.Label(cuerpo, text=titulo, bg=tema.FONDO, font=("Segoe UI", 10), cursor="hand2")
+        self._nombre.pack(side="left")
+        self._cierre = tk.Label(cuerpo, bg=tema.FONDO, cursor="hand2", width=3)
+        self._cierre.pack(side="left", padx=(14, 10))
+        self._img_cierre = recursos.icono("cerrar", master=master)
+        self._img_vacia = recursos.icono("vacio", master=master)
+
+        # Se lee self.clave al hacer clic (no la del constructor): cambia si se renombra el archivo.
+        for widget in (self, cuerpo, self._icono, self._nombre):
+            widget.bind("<Button-1>", lambda e: al_seleccionar(self.clave))
+        self._cierre.bind("<Button-1>", lambda e: al_cerrar(self.clave))
+        for widget in (self, cuerpo, self._icono, self._nombre, self._cierre, self._linea):
+            widget.bind("<ButtonRelease-2>", lambda e: al_cerrar(self.clave))
             widget.bind("<Enter>", self._pidio_revisar_mouse)
             widget.bind("<Leave>", self._pidio_revisar_mouse)
 
@@ -71,25 +72,20 @@ class _Pestana(tk.Frame):
         self.refrescar()
 
     def refrescar(self) -> None:
-        fondo = tema.EDITOR if self._activa else tema.FONDO
-        if self._sobre and not self._activa:
-            fondo = tema.SELECCION_SUAVE
-        color_texto = tema.TEXTO if (self._activa or self._sobre) else tema.TEXTO_SUAVE
+        fondo = tema.SELECCION_SUAVE if (self._sobre and not self._activa) else tema.FONDO
+        color_texto = tema.TEXTO_FUERTE if self._activa else (tema.TEXTO if self._sobre else tema.TEXTO_APAGADO)
 
         if self._sobre or (self._activa and not self._modificada):
-            simbolo = CERRAR
+            self._cierre.config(image=self._img_cierre, text="")
         elif self._modificada:
-            simbolo = MODIFICADO
+            self._cierre.config(image=self._img_vacia, text=MODIFICADO, fg=tema.ACENTO, compound="center")
         else:
-            simbolo = " "
+            self._cierre.config(image=self._img_vacia, text="")
 
-        for widget in (self, self._nombre, self._cierre):
+        for widget in (self, self._cuerpo, self._icono, self._nombre, self._cierre):
             widget.config(bg=fondo)
         self._nombre.config(fg=color_texto)
-        self._cierre.config(fg=tema.ACENTO if simbolo == MODIFICADO else color_texto, text=simbolo)
-        self._subrayado.config(bg=tema.ACENTO if self._activa else fondo)
-
-
+        self._linea.config(bg=tema.ACENTO if self._activa else fondo)
 
 
 class BarraPestanas(tk.Frame):
@@ -126,8 +122,10 @@ class BarraPestanas(tk.Frame):
 
         self._boton_nuevo = None
         if al_nuevo is not None:
-            self._boton_nuevo = BotonPlano(self._contenedor, "+", al_nuevo, font=("Segoe UI", 12))
-            self._boton_nuevo.pack(side="left")
+            self._boton_nuevo = BotonIcono(
+                self._contenedor, recursos.icono("mas", master=self), al_nuevo, ayuda="Nuevo archivo"
+            )
+            self._boton_nuevo.pack(side="left", padx=4)
 
         self._contenedor.bind("<Configure>", self._al_cambiar_tamano)
         self._lienzo.bind("<Configure>", self._al_cambiar_tamano)
@@ -153,6 +151,19 @@ class BarraPestanas(tk.Frame):
         if pestana is not None:
             pestana.destroy()
 
+    def renombrar(self, clave_vieja: str, clave_nueva: str, titulo: str, modificada: bool) -> None:
+        """Cambia la clave (ruta) de una pestaña conservando su posicion."""
+        if clave_vieja not in self._pestanas:
+            return
+        self._pestanas = {
+            (clave_nueva if k == clave_vieja else k): p for k, p in self._pestanas.items()
+        }
+        pestana = self._pestanas[clave_nueva]
+        pestana.clave = clave_nueva
+        pestana.configurar(titulo, modificada)
+        if self._pendiente == clave_vieja:
+            self._pendiente = clave_nueva
+
     def seleccionar(self, clave: str) -> None:
         for k, pestana in self._pestanas.items():
             pestana.activar(k == clave)
@@ -164,11 +175,20 @@ class BarraPestanas(tk.Frame):
         if clave in self._pestanas:
             self._pestanas[clave].configurar(titulo, modificada)
 
-    def agregar_accion(self, texto: str, comando, destacada: bool = False) -> BotonPlano:
-        boton = BotonPlano(
-            self._acciones, texto, comando, color=tema.ACENTO if destacada else tema.TEXTO_SUAVE
+    def agregar_accion(
+        self, texto: str, comando, icono: str | None = None, ayuda: str = "", destacada: bool = False
+    ) -> BotonIcono:
+        """Boton a la derecha de la barra (se apilan de derecha a izquierda)."""
+        imagen = recursos.icono(icono, master=self) if icono else ""
+        boton = BotonIcono(
+            self._acciones, imagen, comando, texto=texto, ayuda=ayuda,
+            color=tema.TEXTO_FUERTE if destacada else tema.TEXTO,
         )
-        boton.pack(side="right")
+        if destacada:
+            boton.config(font=("Segoe UI", 9, "bold"))
+        if not icono:
+            boton.config(compound="none")
+        boton.pack(side="right", padx=(0, 2))
         return boton
 
     # ---------- desplazamiento ----------

@@ -4,18 +4,26 @@ from __future__ import annotations
 import sys
 from tkinter import ttk
 
-FONDO = "#1b1c25"          # ventana y barras
-SUPERFICIE = "#242635"     # botones, pestañas inactivas
-EDITOR = "#1e1f29"         # areas de codigo
-BORDE = "#2f3144"
-TEXTO = "#d7dae0"
-TEXTO_SUAVE = "#8b8fa3"
-ACENTO = "#ffd54a"         # amarillo del logo / cursor
-SELECCION = "#5b3a8f"      # morado de la fila seleccionada
-SELECCION_SUAVE = "#2d2f45"
+# Colores medidos del diseno (docs/diseno_ide.png)
+FONDO = "#252832"          # barras laterales, pestañas y panel derecho
+CABECERA = "#282b36"       # barra superior
+EDITOR = "#1e2029"         # areas de codigo
+SALIDA = "#20222c"         # panel de salida
+SUPERFICIE = "#363746"     # teclas, botones
+BORDE = "#31333e"          # lineas separadoras
+TEXTO = "#c6c8d7"
+TEXTO_FUERTE = "#f3f0e8"   # titulos
+TEXTO_SUAVE = "#aaa6b2"    # etiquetas de seccion
+TEXTO_APAGADO = "#86838f"  # texto secundario, numeros de linea (#525767)
+ACENTO = "#ffd400"         # amarillo del logo, cursor y pestaña activa
+SELECCION = "#50306e"      # morado de la fila seleccionada y la tarjeta de pista
+SELECCION_BORDE = "#643e81"
+SELECCION_SUAVE = "#2f3242"  # fondo al pasar el mouse
+PURPURA = "#a45ec5"        # avatar y prompt
+TARJETA = "#32263c"        # tarjeta del constructor de pistas
 
 ERROR = "#ff7b7b"
-EXITO = "#7ddc9a"
+EXITO = "#9ebc62"
 AVISO = "#ffc266"
 
 FUENTE_CODIGO = ("Consolas", 11)
@@ -46,7 +54,7 @@ def oscurecer_barra_titulo(ventana) -> None:
         if poner(20, 1) != 0:
             poner(19, 1)
         # Win11: color exacto de la barra (35) y del texto (36).
-        poner(35, _colorref(FONDO))
+        poner(35, _colorref(CABECERA))
         poner(36, _colorref(TEXTO))
     except Exception:
         pass
@@ -126,4 +134,31 @@ def aplicar_tema(raiz) -> None:
     estilo.map("TScrollbar", background=[("active", SELECCION_SUAVE)])
 
     estilo.configure("TPanedwindow", background=BORDE)
-    estilo.configure("Sash", sashthickness=4, background=BORDE)
+    estilo.configure("Sash", sashthickness=3, gripcount=0, background=BORDE)
+
+    # Controles de formulario (constructor de pistas y preferencias)
+    estilo.configure(
+        "TEntry", fieldbackground=EDITOR, foreground=TEXTO, insertcolor=ACENTO,
+        bordercolor=BORDE, lightcolor=BORDE, darkcolor=BORDE, padding=4,
+    )
+    estilo.map("TEntry", bordercolor=[("focus", ACENTO)], lightcolor=[("focus", ACENTO)], darkcolor=[("focus", ACENTO)])
+    estilo.configure(
+        "TCombobox", fieldbackground=EDITOR, background=SUPERFICIE, foreground=TEXTO,
+        arrowcolor=TEXTO_SUAVE, bordercolor=BORDE, lightcolor=BORDE, darkcolor=BORDE, padding=4,
+    )
+    estilo.map(
+        "TCombobox",
+        fieldbackground=[("readonly", EDITOR)], foreground=[("readonly", TEXTO)],
+        selectbackground=[("readonly", EDITOR)], selectforeground=[("readonly", TEXTO)],
+        bordercolor=[("focus", ACENTO)],
+    )
+    raiz.option_add("*TCombobox*Listbox.background", EDITOR)
+    raiz.option_add("*TCombobox*Listbox.foreground", TEXTO)
+    raiz.option_add("*TCombobox*Listbox.selectBackground", SELECCION)
+    raiz.option_add("*TCombobox*Listbox.selectForeground", "#ffffff")
+    estilo.configure("TCheckbutton", background=FONDO, foreground=TEXTO, focuscolor=FONDO)
+    estilo.map("TCheckbutton", background=[("active", FONDO)], indicatorcolor=[("selected", ACENTO)])
+    estilo.configure(
+        "TSpinbox", fieldbackground=EDITOR, foreground=TEXTO, arrowcolor=TEXTO_SUAVE,
+        bordercolor=BORDE, lightcolor=BORDE, darkcolor=BORDE, padding=4,
+    )

@@ -12,17 +12,21 @@ from gui.pestana_editor import PestanaEditor
 
 class EditorCodigo(ttk.Frame):
 
-    def __init__(self, master, on_ejecutar=None, on_nuevo=None, **kwargs):
+    def __init__(self, master, on_ejecutar=None, on_compilar=None, on_nuevo=None, on_estado=None, tam_fuente: int = 11, **kwargs):
         super().__init__(master, **kwargs)
         self.on_ejecutar = on_ejecutar
+        self.on_compilar = on_compilar
+        self._tam_fuente = tam_fuente
+        self.on_estado = on_estado  # callback(ruta_activa | None, modificada)
         self._pestanas: dict[str, PestanaEditor] = {}  # ruta absoluta -> pestaña
         self._activa: str | None = None
 
         self.barra = BarraPestanas(self, self._seleccionar, self.cerrar, al_nuevo=on_nuevo)
         self.barra.pack(side="top", fill="x")
-        self.barra.agregar_accion("▶ Ejecutar caso", self._ejecutar, destacada=True)
-        self.barra.agregar_accion("Guardar", self.guardar_activo)
-        self.barra.agregar_accion("Buscar", self.alternar_busqueda)
+        self.barra.agregar_accion("Ejecutar caso", self._ejecutar, icono="play", ayuda="Compilar y ejecutar (Ctrl+Enter)", destacada=True)
+        self.barra.agregar_accion("Compilar", self._compilar, icono="comprobar", ayuda="Solo compilar, sin ejecutar")
+        self.barra.agregar_accion("", self.guardar_activo, icono="guardar", ayuda="Guardar (Ctrl+S)")
+        self.barra.agregar_accion("", self.alternar_busqueda, icono="lupa", ayuda="Buscar (Ctrl+F)")
 
         self.busqueda = BarraBusqueda(
             self,
@@ -63,7 +67,8 @@ class EditorCodigo(ttk.Frame):
 
         fin_de_linea = "\r\n" if "\r\n" in contenido else "\n"
         pestana = PestanaEditor(
-            self._area, ruta, self._actualizar_titulo, self.guardar_activo, self._ejecutar
+            self._area, ruta, self._actualizar_titulo, self.guardar_activo, self._ejecutar,
+            tam_fuente=self._tam_fuente,
         )
         pestana.al_actualizar_busqueda = lambda actual, total, p=pestana: self._contador_de(p, actual, total)
         pestana.texto.bind("<Control-f>", self._atajo_buscar)
@@ -107,19 +112,39 @@ class EditorCodigo(ttk.Frame):
             if respuesta and not self._guardar(pestana):
                 return False
 
-        posicion = list(self._pestanas).index(pestana.ruta)
-        del self._pestanas[pestana.ruta]
-        self.barra.quitar(pestana.ruta)
-        pestana.destroy()
+        self._quitar(pestana)
+        return True
 
-        if pestana.ruta == self._activa:
-            self._activa = None
-            if self._pestanas:
-                restantes = list(self._pestanas)
-                self._seleccionar(restantes[min(posicion, len(restantes) - 1)])
-            else:
-                self._vacio.tkraise()
-                self.cerrar_busqueda()
+    def descartar(self, ruta: str) -> None:
+        """Cierra la pestaña sin preguntar ni guardar (el archivo ya no existe)."""
+        pestana = self._pestanas.get(os.path.abspath(ruta))
+        if pestana is not None:
+            self._quitar(pestana)
+
+    def actualizar_ruta(self, ruta_vieja: str, ruta_nueva: str) -> None:
+        """Un archivo abierto fue renombrado: la pestaña pasa a apuntar al nuevo
+        nombre (con sus cambios sin guardar, si los tenia)."""
+        vieja, nueva = os.path.abspath(ruta_vieja), os.path.abspath(ruta_nueva)
+        pestana = self._pestanas.get(vieja)
+        if pestana is None:
+            return
+        pestana.ruta = nueva
+        self._pestanas = {(nueva if k == vieja else k): p for k, p in self._pestanas.items()}
+        if self._activa == vieja:
+            self._activa = nueva
+        self.barra.renombrar(vieja, nueva, os.path.basename(nueva), pestana.modificado)
+        self._notificar_estado()
+
+    def insertar_texto(self, texto: str) -> bool:
+        """Inserta codigo (p. ej. un ejemplo de la guia) en el cursor del archivo
+        activo. Devuelve False si no hay ningun archivo abierto."""
+        pestana = self._pestana_activa()
+        if pestana is None:
+            dialogos.mostrar_aviso(self, "Abre o crea un archivo para poder insertar el código.")
+            return False
+        pestana.texto.insert("insert", texto + "\n")
+        pestana.texto.focus_set()
+        pestana.texto.see("insert")
         return True
 
     def hay_cambios_sin_guardar(self) -> bool:
@@ -156,6 +181,22 @@ class EditorCodigo(ttk.Frame):
     def _pestana_activa(self) -> PestanaEditor | None:
         return self._pestanas.get(self._activa) if self._activa else None
 
+    def _quitar(self, pestana: PestanaEditor) -> None:
+        posicion = list(self._pestanas).index(pestana.ruta)
+        del self._pestanas[pestana.ruta]
+        self.barra.quitar(pestana.ruta)
+        pestana.destroy()
+
+        if pestana.ruta == self._activa:
+            self._activa = None
+            if self._pestanas:
+                restantes = list(self._pestanas)
+                self._seleccionar(restantes[min(posicion, len(restantes) - 1)])
+            else:
+                self._vacio.tkraise()
+                self.cerrar_busqueda()
+        self._notificar_estado()
+
     def _seleccionar(self, ruta: str) -> None:
         if ruta not in self._pestanas:
             return
@@ -170,6 +211,7 @@ class EditorCodigo(ttk.Frame):
         pestana.texto.focus_set()
         if self.busqueda.visible:
             self._buscar(self.busqueda.consulta(), saltar=False)
+        self._notificar_estado()
 
     def _guardar(self, pestana: PestanaEditor) -> bool:
         contenido = pestana.obtener_contenido().replace("\n", pestana.fin_de_linea())
@@ -184,10 +226,26 @@ class EditorCodigo(ttk.Frame):
 
     def _actualizar_titulo(self, pestana: PestanaEditor) -> None:
         self.barra.actualizar(pestana.ruta, os.path.basename(pestana.ruta), pestana.modificado)
+        self._notificar_estado()
+
+    def _notificar_estado(self) -> None:
+        if self.on_estado:
+            activa = self._pestana_activa()
+            self.on_estado(activa.ruta if activa else None, bool(activa and activa.modificado))
 
     def _ejecutar(self) -> None:
         if self.on_ejecutar:
             self.on_ejecutar()
+
+    def _compilar(self) -> None:
+        if self.on_compilar:
+            self.on_compilar()
+
+    def cambiar_tamano_fuente(self, tam_fuente: int) -> None:
+        """Aplica el tamaño de letra a todas las pestañas (y a las que se abran despues)."""
+        self._tam_fuente = tam_fuente
+        for pestana in self._pestanas.values():
+            pestana.cambiar_fuente(tam_fuente)
 
     # ---------- busqueda ----------
 

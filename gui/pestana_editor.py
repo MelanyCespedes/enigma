@@ -4,19 +4,21 @@ import tkinter as tk
 from tkinter import ttk
 
 from gui import resaltado, tema
+from gui.botones import autoocultar
 
 FUENTE = tema.FUENTE_CODIGO
-COLOR_NUMEROS_FONDO = "#1a1b24"
-COLOR_NUMEROS_TEXTO = "#5c6370"
+COLOR_NUMEROS_FONDO = tema.EDITOR
+COLOR_NUMEROS_TEXTO = "#525767"
+ESPACIADO = 3  # px extra arriba y abajo de cada linea (el diseno es mas "aireado")
 COLOR_SELECCION = "#3b3f5c"
 
 COLORES_RESALTADO = {
-    resaltado.PALABRA_CLAVE: "#c678dd",
-    resaltado.TIPO: "#ffc83d",
-    resaltado.TEXTO: "#e5c07b",
-    resaltado.VARIABLE: "#8fd3b0",
+    resaltado.PALABRA_CLAVE: "#c07ee0",
+    resaltado.TIPO: "#ffd400",
+    resaltado.TEXTO: "#d9a85b",
+    resaltado.VARIABLE: "#9fd7bb",
     resaltado.NUMERO: "#d19a66",
-    resaltado.COMENTARIO: "#6a7280",
+    resaltado.COMENTARIO: "#6f7384",
 }
 
 ESPACIOS_POR_TAB = 4
@@ -34,7 +36,7 @@ class PestanaEditor(ttk.Frame):
     cambios mediante callbacks (al_modificar, al_guardar, al_ejecutar).
     """
 
-    def __init__(self, master, ruta: str | None, al_modificar, al_guardar, al_ejecutar):
+    def __init__(self, master, ruta: str | None, al_modificar, al_guardar, al_ejecutar, tam_fuente: int = FUENTE[1]):
         super().__init__(master)
         self.ruta = ruta
         self.modificado = False
@@ -42,6 +44,7 @@ class PestanaEditor(ttk.Frame):
         self._cargando = False
         self._resaltado_pendiente = None
         self._al_modificar = al_modificar
+        self._fuente = (FUENTE[0], tam_fuente)
 
         # Busqueda (Ctrl+F): el editor la controla desde fuera.
         self.al_actualizar_busqueda = None  # callback(actual, total)
@@ -50,23 +53,24 @@ class PestanaEditor(ttk.Frame):
         self._indice: int | None = None
 
         self.numeros = tk.Text(
-            self, width=5, padx=6, pady=4, font=FUENTE, wrap="none", state="disabled",
+            self, width=5, padx=10, pady=8, font=self._fuente, wrap="none", state="disabled",
+            spacing1=ESPACIADO, spacing3=ESPACIADO,
             bg=COLOR_NUMEROS_FONDO, fg=COLOR_NUMEROS_TEXTO, relief="flat", borderwidth=0,
             highlightthickness=0, cursor="arrow", takefocus=0,
         )
         self.numeros.tag_configure("derecha", justify="right")
 
         self.texto = tk.Text(
-            self, padx=8, pady=4, font=FUENTE, wrap="none", undo=True, maxundo=-1,
+            self, padx=14, pady=8, font=self._fuente, wrap="none", undo=True, maxundo=-1,
+            spacing1=ESPACIADO, spacing3=ESPACIADO,
             bg=tema.EDITOR, fg=tema.TEXTO, insertbackground=tema.ACENTO,
             selectbackground=COLOR_SELECCION, relief="flat", borderwidth=0,
             highlightthickness=0, tabs=("1c",),
         )
         for etiqueta, color in COLORES_RESALTADO.items():
             self.texto.tag_configure(etiqueta, foreground=color)
-        self.texto.tag_configure(
-            resaltado.COMENTARIO, font=(FUENTE[0], FUENTE[1], "italic")
-        )
+        self.texto.tag_configure(resaltado.COMENTARIO, font=self._fuente + ("italic",))
+        self.texto.tag_configure(resaltado.TIPO, font=self._fuente + ("bold",))
         self.texto.tag_configure(ETIQUETA_BUSQUEDA, background=COLOR_BUSQUEDA)
         self.texto.tag_configure(
             ETIQUETA_BUSQUEDA_ACTUAL, background=tema.ACENTO, foreground="#1b1c25"
@@ -75,14 +79,22 @@ class PestanaEditor(ttk.Frame):
 
         self.barra_v = ttk.Scrollbar(self, orient="vertical", command=self._desplazar)
         self.barra_h = ttk.Scrollbar(self, orient="horizontal", command=self.texto.xview)
-        self.texto.configure(yscrollcommand=self._al_desplazar, xscrollcommand=self.barra_h.set)
+        self._poner_barra_v = autoocultar(
+            self.barra_v, lambda: self.barra_v.grid(), lambda: self.barra_v.grid_remove()
+        )
+        self.texto.configure(
+            yscrollcommand=self._al_desplazar,
+            xscrollcommand=autoocultar(self.barra_h, lambda: self.barra_h.grid(), lambda: self.barra_h.grid_remove()),
+        )
 
+        self._separador = tk.Frame(self, width=1, bg=tema.BORDE)
         self.grid_rowconfigure(0, weight=1)
-        self.grid_columnconfigure(1, weight=1)
+        self.grid_columnconfigure(2, weight=1)
         self.numeros.grid(row=0, column=0, sticky="ns")
-        self.texto.grid(row=0, column=1, sticky="nsew")
-        self.barra_v.grid(row=0, column=2, sticky="ns")
-        self.barra_h.grid(row=1, column=1, sticky="ew")
+        self._separador.grid(row=0, column=1, sticky="ns")
+        self.texto.grid(row=0, column=2, sticky="nsew")
+        self.barra_v.grid(row=0, column=3, sticky="ns")
+        self.barra_h.grid(row=1, column=2, sticky="ew")
 
         self.texto.bind("<<Modified>>", self._cuando_cambia_el_texto)
         self.texto.bind("<Tab>", self._insertar_espacios)
@@ -91,6 +103,14 @@ class PestanaEditor(ttk.Frame):
         self.numeros.bind("<MouseWheel>", lambda e: "break")
 
         self._actualizar_numeros()
+
+    def cambiar_fuente(self, tam_fuente: int) -> None:
+        """Cambia el tamaño de letra (preferencias)."""
+        self._fuente = (FUENTE[0], tam_fuente)
+        self.texto.config(font=self._fuente)
+        self.numeros.config(font=self._fuente)
+        self.texto.tag_configure(resaltado.COMENTARIO, font=self._fuente + ("italic",))
+        self.texto.tag_configure(resaltado.TIPO, font=self._fuente + ("bold",))
 
     @staticmethod
     def _como_atajo(accion):
@@ -108,7 +128,7 @@ class PestanaEditor(ttk.Frame):
         self.numeros.yview(*args)
 
     def _al_desplazar(self, primero, ultimo) -> None:
-        self.barra_v.set(primero, ultimo)
+        self._poner_barra_v(primero, ultimo)
         self.numeros.yview_moveto(primero)
 
     # ---------- contenido ----------

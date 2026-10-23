@@ -1,7 +1,9 @@
+{ Calcula el promedio de dos notas }
 escena CalcularPromedio(a: entero, b: entero)::decimal inicio
     concluir repartir(conectar(a, b), 2)!
 fin!
 
+{ Programa principal }
 caso CasoPromedio abierto
     pista nota1 = entero(valor: 15)!
     pista nota2 = entero(valor: 18)!
@@ -14,6 +16,7 @@ caso CasoPromedio abierto
         revelar('El sospechoso aprobo la primera nota.')!
     fin!
 
+    { Repite tres intentos }
     rastrear intento desde 1 hasta 3 inicio
         revelar('Intento numero:', intento)!
     fin!

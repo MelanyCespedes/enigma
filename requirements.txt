@@ -1,0 +1,2 @@
+# Unica dependencia externa: las pruebas. El IDE usa tkinter, que ya viene con Python.
+pytest>=8

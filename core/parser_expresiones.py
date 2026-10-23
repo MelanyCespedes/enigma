@@ -165,7 +165,7 @@ class _ExpresionesMixin:
         token_valor = self._actual()
         if token_valor.tipo == TipoToken.SIN_PISTA:
             self._avanzar()
-            literal = Literal(tipo="sin_pista", valor=None)
+            literal = Literal(tipo="sin_pista", valor=None, tipo_declarado=nombre_tipo)
         elif token_valor.tipo == TipoToken.CULPABLE:
             self._avanzar()
             literal = Literal(tipo=nombre_tipo, valor=True)

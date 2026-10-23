@@ -38,6 +38,7 @@ class _FuncionesMixin:
             tipo_retorno=tipo_retorno.lexema,
             cuerpo=cuerpo,
             linea=token_escena.linea,
+            archivo=self.nombre_archivo,
         )
 
     def _parsear_proceso(self) -> Proceso:
@@ -52,6 +53,7 @@ class _FuncionesMixin:
             parametros=parametros,
             cuerpo=cuerpo,
             linea=token_proceso.linea,
+            archivo=self.nombre_archivo,
         )
 
     # llamada y retorno

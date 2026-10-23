@@ -98,7 +98,8 @@ class Interprete:
 
         elif isinstance(sentencia, Consultar):
             entrada = input()
-            entorno.asignar(sentencia.variable, self._interpretar_entrada(entrada))
+            actual = entorno.obtener(sentencia.variable)
+            entorno.asignar(sentencia.variable, self._convertir_entrada(entrada, actual, sentencia))
 
         elif isinstance(sentencia, Resolver):
             self._llamar_funcion(sentencia)
@@ -305,6 +306,8 @@ class Interprete:
         funcion = self.programa.funciones[llamada.nombre]
         argumentos = [self._evaluar(arg, self.entorno) for arg in llamada.argumentos]
 
+        archivo_llamador = self.archivo
+        self.archivo = funcion.archivo or self.programa.archivo_origen
         self.entorno.entrar_ambito()
         try:
             for parametro, valor in zip(funcion.parametros, argumentos):
@@ -331,6 +334,7 @@ class Interprete:
             return None
         finally:
             self.entorno.salir_ambito()
+            self.archivo = archivo_llamador
 
     def _formatear(self, valor) -> str:
         if valor is True:
@@ -340,6 +344,47 @@ class Interprete:
         if valor is None:
             return "sin_pista"
         return str(valor)
+
+    def _convertir_entrada(self, texto: str, valor_actual, sentencia):
+        """Convierte lo escrito por el usuario al tipo con que se declaro la
+        variable (deducido de su valor actual). Si no coincide, es un error de
+        ejecucion; asi un 'entero' nunca termina guardando texto."""
+        texto = texto.strip()
+        nombre = sentencia.variable
+
+        if isinstance(valor_actual, bool):
+            if texto == "culpable":
+                return True
+            if texto == "NoCulpable":
+                return False
+            raise self._error_ejecucion(
+                pista=f"'{nombre}' solo acepta culpable o NoCulpable.",
+                descripcion=f"Se escribió '{texto}', pero '{nombre}' es una declaracion (booleano).",
+                causa="Escribe exactamente culpable o NoCulpable.",
+            )
+        if isinstance(valor_actual, int):
+            try:
+                return int(texto)
+            except ValueError:
+                raise self._error_ejecucion(
+                    pista=f"'{nombre}' espera un número entero.",
+                    descripcion=f"Se escribió '{texto}', pero '{nombre}' es un entero.",
+                    causa="Escribe un número sin decimales, por ejemplo 25.",
+                ) from None
+        if isinstance(valor_actual, float):
+            try:
+                return float(texto)
+            except ValueError:
+                raise self._error_ejecucion(
+                    pista=f"'{nombre}' espera un número decimal.",
+                    descripcion=f"Se escribió '{texto}', pero '{nombre}' es un decimal.",
+                    causa="Escribe un número, por ejemplo 15.5.",
+                ) from None
+        if isinstance(valor_actual, str):
+            return texto
+
+        # sin_pista: no hay tipo que respetar todavia
+        return self._interpretar_entrada(texto)
 
     def _interpretar_entrada(self, texto: str):
         texto = texto.strip()

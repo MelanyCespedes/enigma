@@ -12,6 +12,8 @@ class Simbolo:
     es_constante: bool
     linea: int
     ambito: str
+    # Si nacio como 'entero(valor: sin_pista)': tipo que tendra al recibir un valor
+    tipo_declarado: str = ""
 
 
 class TablaSimbolos:
@@ -38,7 +40,9 @@ class TablaSimbolos:
         return self._nombres[-1]
 
 
-    def declarar(self, nombre: str, tipo: str, es_constante: bool, linea: int) -> Simbolo:
+    def declarar(
+        self, nombre: str, tipo: str, es_constante: bool, linea: int, tipo_declarado: str = ""
+    ) -> Simbolo:
         ambito = self._ambitos[-1]
 
         if nombre in ambito:
@@ -61,6 +65,7 @@ class TablaSimbolos:
             es_constante=es_constante,
             linea=linea,
             ambito=self.ambito_actual,
+            tipo_declarado=tipo_declarado,
         )
         ambito[nombre] = simbolo
         return simbolo

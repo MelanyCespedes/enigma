@@ -30,6 +30,47 @@ def tokenizar(codigo_fuente: str, nombre_archivo: str)-> list[Token]:
             columna += 1
             continue
 
+        if caracter == "{":
+            linea_apertura = linea
+            columna_apertura = columna
+            posicion += 1
+            columna += 1
+
+            while posicion < len(codigo_fuente) and codigo_fuente[posicion] != "}":
+                if codigo_fuente[posicion] == "\n":
+                    linea += 1
+                    columna = 1
+                else:
+                    columna += 1
+                posicion += 1
+
+            if posicion >= len(codigo_fuente):
+                raise ErrorLexico(
+                    tipo="Comentario sin cerrar",
+                    archivo=nombre_archivo,
+                    linea=linea_apertura,
+                    pista="Hay un comentario que nunca se cierra.",
+                    descripcion=(
+                        f"El comentario abierto con '{{' en la linea {linea_apertura}, "
+                        f"columna {columna_apertura} no tiene su '}}' de cierre."
+                    ),
+                    causa_posible="Revisa si te falto una llave de cierre '}'.",
+                )
+
+            posicion += 1
+            columna += 1
+            continue
+
+        if caracter == "}":
+            raise ErrorLexico(
+                tipo="Cierre de comentario sin apertura",
+                archivo=nombre_archivo,
+                linea=linea,
+                pista="Hay una llave de cierre '}' que no corresponde a ningun comentario.",
+                descripcion="Se encontro '}' sin un '{' que abra un comentario antes.",
+                causa_posible="Revisa si te falto la llave de apertura '{' o si sobra esta '}'.",
+            )
+
         if caracter == "!":
             tokens.append(Token(TipoToken.SELLO, "!",None, linea, columna))
             posicion += 1

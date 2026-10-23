@@ -55,7 +55,7 @@ def test_declaracion_valor_sin_pista():
     codigo = "caso Prueba abierto pista p5 = entero(valor: sin_pista)! caso Prueba cerrado!"
     programa = _parsear(codigo)
     (declaracion,) = programa.caso_principal.cuerpo
-    assert declaracion.valor == Literal(tipo="sin_pista", valor=None)
+    assert declaracion.valor == Literal(tipo="sin_pista", valor=None, tipo_declarado="entero")
 
 
 def test_asignacion():

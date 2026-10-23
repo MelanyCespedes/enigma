@@ -13,21 +13,48 @@ def resolver_importaciones(programa: Programa, directorio_base: str) -> Programa
     fusionando las funciones de cada archivo importado dentro de
     'programa.funciones'. Modifica 'programa' en el lugar y lo devuelve.
 
-    Solo se importan funciones (escena/proceso), no variables globales.
+    'directorio_base' es la carpeta del archivo principal. Cada importacion se
+    busca relativa a la carpeta del archivo que la escribe (como #include en C),
+    asi que un archivo en 'src/' que importa <pistas.eng> usa 'src/pistas.eng',
+    y se permiten rutas como <../lib/util.eng> o <sub/otro.eng>.
 
-    Nota: si dos archivos distintos importan un mismo tercer archivo
-    (importacion en 'diamante'), esta implementacion podria reportar un
-    falso 'funcion duplicada'. No se resuelve aqui por quedar fuera del
-    alcance minimo del proyecto (que solo requiere importaciones simples
-    y una prueba de importacion circular).
+    Solo se importan funciones (escena/proceso), no variables globales.
+    Un mismo archivo importado por varios caminos (importacion en 'diamante')
+    se lee una sola vez y no cuenta como funcion duplicada.
     """
-    _resolver(programa, directorio_base, pila=[programa.archivo_origen])
+    base = os.path.abspath(directorio_base)
+    principal = os.path.join(base, programa.archivo_origen)
+    _resolver(
+        programa,
+        directorio=os.path.dirname(principal),
+        base=base,
+        pila_rutas=[_clave(principal)],
+        pila_nombres=[programa.archivo_origen],
+        cache={},
+    )
     return programa
 
 
-def _resolver(programa: Programa, directorio_base: str, pila: list[str]) -> None:
+def _clave(ruta: str) -> str:
+    return os.path.normcase(os.path.abspath(ruta))
+
+
+def _nombre_para_mostrar(ruta: str, base: str) -> str:
+    """Ruta relativa a la carpeta del archivo principal, con '/' siempre."""
+    return os.path.relpath(ruta, base).replace(os.sep, "/")
+
+
+def _resolver(
+    programa: Programa,
+    directorio: str,
+    base: str,
+    pila_rutas: list[str],
+    pila_nombres: list[str],
+    cache: dict[str, Programa],
+) -> None:
     for importacion in programa.importaciones:
-        ruta = os.path.join(directorio_base, importacion.archivo)
+        ruta = os.path.normpath(os.path.join(directorio, importacion.archivo))
+        nombre = _nombre_para_mostrar(ruta, base)
 
         if not os.path.isfile(ruta):
             raise ErrorDeImportacion(
@@ -35,12 +62,12 @@ def _resolver(programa: Programa, directorio_base: str, pila: list[str]) -> None
                 archivo=programa.archivo_origen,
                 linea=importacion.linea,
                 pista=f"No se encontró el archivo '{importacion.archivo}'.",
-                descripcion=f"El archivo '{importacion.archivo}' no existe en '{directorio_base}'.",
-                causa_posible="Revisa el nombre del archivo o su ubicación.",
+                descripcion=f"El archivo '{importacion.archivo}' no existe en '{directorio}'.",
+                causa_posible="Revisa el nombre del archivo o su ubicación (se busca junto al archivo que lo importa).",
             )
 
-        if importacion.archivo in pila:
-            cadena = " -> ".join(pila + [importacion.archivo])
+        if _clave(ruta) in pila_rutas:
+            cadena = " -> ".join(pila_nombres + [nombre])
             raise ErrorDeImportacion(
                 tipo="importacion circular",
                 archivo=programa.archivo_origen,
@@ -50,27 +77,41 @@ def _resolver(programa: Programa, directorio_base: str, pila: list[str]) -> None
                 causa_posible="Dos o más archivos se importan entre sí formando un ciclo.",
             )
 
-        with open(ruta, encoding="utf-8") as archivo:
-            codigo = archivo.read()
+        programa_importado = cache.get(_clave(ruta))
+        if programa_importado is None:
+            with open(ruta, encoding="utf-8") as archivo:
+                codigo = archivo.read()
 
-        tokens = tokenizar(codigo, importacion.archivo)
-        programa_importado = parsear(tokens, importacion.archivo)
+            tokens = tokenizar(codigo, nombre)
+            programa_importado = parsear(tokens, nombre)
+            cache[_clave(ruta)] = programa_importado
 
-        _resolver(programa_importado, directorio_base, pila + [importacion.archivo])
+            _resolver(
+                programa_importado,
+                directorio=os.path.dirname(ruta),
+                base=base,
+                pila_rutas=pila_rutas + [_clave(ruta)],
+                pila_nombres=pila_nombres + [nombre],
+                cache=cache,
+            )
+
         _fusionar_funciones(programa, programa_importado, importacion)
 
 
 def _fusionar_funciones(programa: Programa, importado: Programa, importacion) -> None:
     for nombre, funcion in importado.funciones.items():
-        if nombre in programa.funciones:
+        existente = programa.funciones.get(nombre)
+        if existente is funcion:
+            continue  # la misma funcion llegada por otro camino (diamante)
+        if existente is not None:
             raise ErrorDeImportacion(
                 tipo="importacion",
                 archivo=programa.archivo_origen,
                 linea=importacion.linea,
                 pista=f"La función '{nombre}' ya existe.",
                 descripcion=(
-                    f"'{nombre}' está declarada tanto en '{programa.archivo_origen}' "
-                    f"como en el archivo importado '{importacion.archivo}'."
+                    f"'{nombre}' está declarada tanto en '{existente.archivo or programa.archivo_origen}' "
+                    f"como en el archivo importado '{funcion.archivo or importacion.archivo}'."
                 ),
                 causa_posible="Dos archivos declaran una función con el mismo nombre.",
             )

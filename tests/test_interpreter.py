@@ -298,3 +298,56 @@ def test_proceso_no_devuelve_valor(capsys):
     ejecutar(programa(cuerpo, funciones={"Saludar": proceso}))
 
     assert "Ana" in capsys.readouterr().out
+
+# ---------- consultar respeta el tipo declarado ----------
+
+def _correr_con_entrada(monkeypatch, capsys, declaracion, entrada):
+    from core.lexer import tokenizar
+    from core.parser import parsear
+    from core.semantic import analizar
+    from core.interpreter import ejecutar
+
+    codigo = f"""caso P abierto
+    pista v = {declaracion}!
+    consultar(v)!
+    revelar(v)!
+caso P cerrado!
+"""
+    programa = parsear(tokenizar(codigo, "p.eng"), "p.eng")
+    analizar(programa)
+    monkeypatch.setattr("builtins.input", lambda *a: entrada)
+    ejecutar(programa)
+    return capsys.readouterr().out.strip()
+
+
+def test_consultar_entero_acepta_numero(monkeypatch, capsys):
+    assert _correr_con_entrada(monkeypatch, capsys, "entero(valor: 0)", "25") == "25"
+
+
+def test_consultar_entero_rechaza_texto(monkeypatch, capsys):
+    from core.errors import ErrorDeEjecucion
+    with pytest.raises(ErrorDeEjecucion):
+        _correr_con_entrada(monkeypatch, capsys, "entero(valor: 0)", "hola")
+
+
+def test_consultar_entero_rechaza_decimal(monkeypatch, capsys):
+    from core.errors import ErrorDeEjecucion
+    with pytest.raises(ErrorDeEjecucion):
+        _correr_con_entrada(monkeypatch, capsys, "entero(valor: 0)", "2.5")
+
+
+def test_consultar_decimal_acepta_entero_y_decimal(monkeypatch, capsys):
+    assert _correr_con_entrada(monkeypatch, capsys, "decimal(valor: 0.5)", "3") == "3.0"
+    assert _correr_con_entrada(monkeypatch, capsys, "decimal(valor: 0.5)", "3.5") == "3.5"
+
+
+def test_consultar_expresion_guarda_texto(monkeypatch, capsys):
+    assert _correr_con_entrada(monkeypatch, capsys, "expresion(valor: 'a')", "hola") == "hola"
+    assert _correr_con_entrada(monkeypatch, capsys, "expresion(valor: 'a')", "123") == "123"
+
+
+def test_consultar_declaracion_solo_culpable_o_noculpable(monkeypatch, capsys):
+    from core.errors import ErrorDeEjecucion
+    assert _correr_con_entrada(monkeypatch, capsys, "declaracion(valor: NoCulpable)", "culpable") == "culpable"
+    with pytest.raises(ErrorDeEjecucion):
+        _correr_con_entrada(monkeypatch, capsys, "declaracion(valor: NoCulpable)", "si")

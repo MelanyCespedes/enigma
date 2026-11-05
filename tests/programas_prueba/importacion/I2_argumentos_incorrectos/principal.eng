@@ -1,0 +1,7 @@
+{ I2: llamar una funcion importada con cantidad de argumentos incorrecta }
+#expediente <util/operaciones.eng>
+
+caso A abierto
+    pista r = resolver Sumar(1, 2, 3)!
+    revelar(r)!
+caso A cerrado!

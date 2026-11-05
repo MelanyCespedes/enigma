@@ -1,0 +1,5 @@
+{ M4: declarar dos veces la misma pista en el mismo alcance }
+caso A abierto
+    pista huella = entero(valor: 1)!
+    pista huella = entero(valor: 2)!
+caso A cerrado!

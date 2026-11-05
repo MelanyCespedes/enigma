@@ -30,14 +30,23 @@ class _ParserBase:
     def _verificar(self, tipo: TipoToken) -> bool:
         return self._actual().tipo == tipo
 
+    def _linea_del_faltante(self) -> int:
+        """Linea donde falta un simbolo esperado. Si el token que si aparecio esta en una linea
+        posterior, lo que falta iba al final de la linea anterior (p. ej. un '!' olvidado)."""
+        actual = self._actual()
+        if self.pos > 0 and self.tokens[self.pos - 1].linea < actual.linea:
+            return self.tokens[self.pos - 1].linea
+        return actual.linea
+
     def _esperar(self, tipo: TipoToken) -> Token:
         if self._verificar(tipo):
             return self._avanzar()
+        linea = self._linea_del_faltante()
         raise ErrorSintactico(
             tipo="Token inesperado",
             archivo=self.nombre_archivo,
-            linea=self._actual().linea,
-            pista=f"Se esperaba {tipo.name} cerca de la linea {self._actual().linea}.",
+            linea=linea,
+            pista=f"Se esperaba {tipo.name} cerca de la linea {linea}.",
             descripcion=(
                 f"Se esperaba {tipo.name} pero se encontró "
                 f"{self._actual().tipo.name} ('{self._actual().lexema}')."

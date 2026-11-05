@@ -1,0 +1,7 @@
+{ S4: evaluar sin la palabra si }
+caso A abierto
+    pista x = entero(valor: 3)!
+    evaluar (x > 1) inicio
+        revelar('mayor')!
+    fin!
+caso A cerrado!

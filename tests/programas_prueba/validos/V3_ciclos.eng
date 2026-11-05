@@ -1,0 +1,14 @@
+{ V3: ciclo rastrear (for) y seguir mientras (while) }
+caso Ciclos abierto
+    pista total = entero(valor: 0)!
+    rastrear paso desde 1 hasta 5 inicio
+        total = conectar(total, paso)!
+    fin!
+    revelar('Suma de 1 a 5:', total)!
+
+    pista n = entero(valor: 3)!
+    seguir mientras (n > 0) inicio
+        revelar('Cuenta regresiva', n)!
+        n = descartar(n, 1)!
+    fin!
+caso Ciclos cerrado!

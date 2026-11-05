@@ -1,0 +1,46 @@
+{ P1: prueba completa. Un caso de deduccion con varios archivos.
+  Tres sospechosos; es culpable quien NO tiene coartada Y cuya huella coincide.
+  Evidencias en un tablero: fila = sospechoso, columna 0 = coartada, columna 1 = huella.
+  1 significa que si, 0 significa que no. }
+#expediente <util/deduccion.eng>
+
+caso MuseoDelReloj abierto
+    revelar('Una obra desaparecio del museo. Hay tres sospechosos.')!
+
+    pista evidencias = tablero entero[3][2]!
+    evidencias[0][0] = 1!
+    evidencias[0][1] = 0!
+    evidencias[1][0] = 0!
+    evidencias[1][1] = 1!
+    evidencias[2][0] = 1!
+    evidencias[2][1] = 1!
+
+    pista culpable_hallado = entero(valor: sin_pista)!
+    pista total = entero(valor: 0)!
+
+    rastrear s desde 0 hasta 2 inicio
+        pista sinCoartada = resolver EsCero(evidencias[s][0])!
+        pista huella = resolver EsUno(evidencias[s][1])!
+        pista veredicto = resolver EsCulpable(sinCoartada, huella)!
+        evaluar si (veredicto == culpable) inicio
+            revelar('Sospechoso', s, ': culpable')!
+            culpable_hallado = s!
+            total = conectar(total, 1)!
+        fin!
+        sino inicio
+            revelar('Sospechoso', s, ': descartado')!
+        fin!
+    fin!
+
+    resolver Informe(total)!
+
+    pista respuesta = entero(valor: 0)!
+    revelar('Quien crees que es el culpable?')!
+    consultar(respuesta)!
+    evaluar si (respuesta == culpable_hallado) inicio
+        revelar('Correcto: has resuelto el caso.')!
+    fin!
+    sino inicio
+        revelar('Incorrecto: revisa las pistas otra vez.')!
+    fin!
+caso MuseoDelReloj cerrado!

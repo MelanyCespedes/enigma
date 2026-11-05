@@ -80,7 +80,7 @@ los comentarios se escriben `{ así }`; el texto va entre comillas simples.
 
 ## El IDE
 
-Diseño de referencia: `docs/diseno_ide.png`. El detalle de uso va en el manual de usuario.
+El detalle de uso va en el manual de usuario.
 
 - **Proyectos con varios archivos**: árbol de archivos con carpetas, renombrar, eliminar y
   marcar el **archivo principal** (★).
@@ -133,8 +133,9 @@ enigma/
 ├── gui/               El IDE en tkinter (ventana, editor, árbol, panel de salida, guías)
 │   ├── pistas.py          Pistas de error de la innovación
 │   └── assets/            Logo e iconos (los genera herramientas/)
-├── herramientas/      Scripts que generan el logo y los iconos
+├── herramientas/      Scripts que generan el logo, los iconos y el informe de pruebas
 ├── tests/             Pruebas con pytest
+│   └── programas_prueba/  Los 20 programas .eng del enunciado (§18) y su catálogo
 ├── ejemplos/          Programas .eng de ejemplo
 ├── ejemplo_gui/       Proyecto de ejemplo para abrir en el IDE
 └── docs/              Documentación del proyecto
@@ -144,4 +145,5 @@ enigma/
 
 ```bash
 pytest tests/ -v
+python herramientas/informe_pruebas.py   # tabla de los 20 programas de prueba → docs/Pruebas_Programas.md
 ```

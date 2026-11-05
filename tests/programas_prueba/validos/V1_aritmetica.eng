@@ -1,0 +1,14 @@
+{ V1: variables, constantes, aritmetica y lectura de datos }
+caso Aritmetica abierto
+    hecho base = entero(valor: 12)!
+    pista divisor = entero(valor: 1)!
+    consultar(divisor)!
+
+    revelar('Suma:', conectar(base, divisor))!
+    revelar('Resta:', descartar(base, divisor))!
+    revelar('Producto:', intensificar(base, divisor))!
+    revelar('Division:', repartir(base, divisor))!
+
+    pista nombre = expresion(valor: 'Holmes')!
+    revelar('Detective:', nombre)!
+caso Aritmetica cerrado!

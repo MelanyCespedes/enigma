@@ -53,4 +53,4 @@ def test_error_incluye_archivo_y_linea():
     with pytest.raises(ErrorSintactico) as info:
         _parsear(codigo)
     assert info.value.archivo == "prueba.eng"
-    assert info.value.linea == 3
+    assert info.value.linea == 2  # el '!' falta al final de la linea 2, no en la linea del token siguiente

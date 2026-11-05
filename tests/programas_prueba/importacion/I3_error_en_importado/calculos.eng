@@ -1,0 +1,7 @@
+escena Doble(n: entero)::entero inicio
+    concluir intensificar(n, factor)!
+fin!
+
+caso Biblioteca abierto
+    revelar('biblioteca de calculos')!
+caso Biblioteca cerrado!

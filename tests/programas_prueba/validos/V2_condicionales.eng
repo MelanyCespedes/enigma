@@ -1,0 +1,24 @@
+{ V2: condicional simple, con alternativa y multiple }
+caso Condicionales abierto
+    pista edad = entero(valor: 18)!
+
+    evaluar si (edad >= 18) inicio
+        revelar('Puede entrar')!
+    fin!
+
+    evaluar si (edad < 18) inicio
+        revelar('Menor de edad')!
+    fin!
+    sino evaluar (edad == 18) inicio
+        revelar('Justo 18')!
+    fin!
+    sino inicio
+        revelar('Mayor de edad')!
+    fin!
+
+    suceso (edad) inicio
+        1 (edad < 18): revelar('Opcion 1')!
+        2 (edad > 18): revelar('Opcion 2')!
+        3 (edad == 18): revelar('Opcion 3')!
+    fin!
+caso Condicionales cerrado!

@@ -1,0 +1,14 @@
+{ V4: escena con retorno, proceso sin retorno, parametros y llamadas }
+escena Cuadrado(n: entero)::entero inicio
+    concluir intensificar(n, n)!
+fin!
+
+proceso Saludar(nombre: expresion) inicio
+    revelar('Detective', nombre, 'listo')!
+fin!
+
+caso Funciones abierto
+    pista resultado = resolver Cuadrado(7)!
+    revelar('Cuadrado de 7:', resultado)!
+    resolver Saludar('Watson')!
+caso Funciones cerrado!

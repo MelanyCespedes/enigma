@@ -1,0 +1,31 @@
+{ V5: lista, tablero, operadores logicos y valor nulo }
+caso Compuestos abierto
+    pista nums = pistas entero[2, 4, 6]!
+    nums[1] = 40!
+    revelar('Lista:', nums[0], nums[1], nums[2])!
+
+    pista celdas = tablero entero[2][2]!
+    celdas[0][1] = 7!
+    celdas[1][0] = 9!
+    revelar('Tablero:', celdas[0][1], celdas[1][0])!
+
+    pista a = declaracion(valor: culpable)!
+    pista b = declaracion(valor: NoCulpable)!
+    evaluar si (no(b)) inicio
+        revelar('b es falso')!
+    fin!
+    evaluar si (a o b) inicio
+        revelar('Al menos uno es verdadero')!
+    fin!
+    evaluar si (a y b) inicio
+        revelar('Ambos son verdaderos')!
+    fin!
+    sino inicio
+        revelar('No son ambos verdaderos')!
+    fin!
+
+    pista vacio = entero(valor: sin_pista)!
+    evaluar si (vacio == sin_pista) inicio
+        revelar('Aun sin pista')!
+    fin!
+caso Compuestos cerrado!

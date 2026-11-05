@@ -1,0 +1,7 @@
+escena Sumar(a: entero, b: entero)::entero inicio
+    concluir conectar(a, b)!
+fin!
+
+caso Biblioteca abierto
+    revelar('biblioteca de operaciones')!
+caso Biblioteca cerrado!

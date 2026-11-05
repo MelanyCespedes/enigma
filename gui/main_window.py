@@ -102,7 +102,7 @@ class VentanaPrincipal(tk.Tk):
 
         self.derecha = PanelDerecho(
             horizontal,
-            al_insertar=self.editor.insertar_texto,
+            al_insertar=self.insertar_desde_guia,
             al_ocultar=self.ocultar_derecha,
             al_constructor=self.abrir_constructor,
             al_cambiar_vista=self._vista_cambiada,
@@ -122,6 +122,7 @@ class VentanaPrincipal(tk.Tk):
         archivo.add_command(label="Abrir carpeta...", accelerator="Ctrl+O", command=self.abrir_carpeta)
         archivo.add_separator()
         archivo.add_command(label="Guardar", accelerator="Ctrl+S", command=self.editor.guardar_activo)
+        archivo.add_command(label="Guardar como…", command=self.editor.guardar_como)
         archivo.add_command(label="Guardar todo", command=self.editor.guardar_todos)
         archivo.add_command(label="Cerrar pestaña", accelerator="Ctrl+W", command=self.editor.cerrar)
         archivo.add_separator()
@@ -218,6 +219,18 @@ class VentanaPrincipal(tk.Tk):
 
     def abrir_constructor(self) -> None:
         constructor_pistas.abrir(self, self.editor.insertar_texto)
+
+    def insertar_desde_guia(self, texto: str, nombre: str = "codigo_enigma") -> bool:
+        """Crea un archivo nuevo con el contenido seleccionado en la Guia."""
+        ruta = self.arbol.crear_archivo_desde_guia(texto, nombre)
+        if ruta is None:
+            return False
+
+        dialogos.mostrar_aviso(
+            self,
+            "Archivo creado y listo para practicar.",
+        )
+        return True
 
     # ---------- estado ----------
 

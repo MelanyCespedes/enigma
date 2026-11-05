@@ -41,6 +41,58 @@ def test_las_diez_secciones_estan_y_cubren_lo_que_pide_el_pdf():
     assert all(s.bloques for s in guia.SECCIONES)
 
 
+def test_ruta_del_proyecto_predeterminado_termina_en_enigma():
+    from gui.file_tree import ruta_proyecto_predeterminada
+
+    assert ruta_proyecto_predeterminada().endswith("Enigma")
+
+
+def test_los_proyectos_nuevos_se_crean_en_carpetas_con_nombres_distintos(tmp_path, monkeypatch):
+    from gui import file_tree
+
+    monkeypatch.setattr(file_tree, "ruta_proyecto_predeterminada", lambda: str(tmp_path / "Enigma"))
+    arbol = object.__new__(file_tree.ArbolArchivos)
+    arbol.directorio_proyecto = None
+    arbol.on_proyecto_cargado = None
+
+    arbol.cargar_proyecto = lambda ruta: setattr(arbol, "directorio_proyecto", ruta)
+
+    assert arbol._crear_proyecto_nuevo("calculo_del_cofre", str(tmp_path / "Enigma"))
+    assert arbol._crear_proyecto_nuevo("tablero_sellado", str(tmp_path / "Enigma"))
+    assert (tmp_path / "Enigma" / "calculo_del_cofre").is_dir()
+    assert (tmp_path / "Enigma" / "tablero_sellado").is_dir()
+
+
+def test_cambiar_de_proyecto_conserva_las_subcarpetas_expandidas(tmp_path):
+    from gui import file_tree
+
+    arbol = object.__new__(file_tree.ArbolArchivos)
+    arbol.proyectos_abiertos = [str(tmp_path / "uno"), str(tmp_path / "dos")]
+    arbol.directorio_proyecto = str(tmp_path / "uno")
+    arbol._abiertas = {str(tmp_path / "uno"), str(tmp_path / "uno" / "src")}
+    arbol.archivo_principal = None
+    arbol.archivo_activo = None
+    arbol._seleccion = None
+    arbol.on_proyecto_cargado = None
+    arbol._cargar_configuracion_proyecto = lambda: None
+    arbol._refrescar_arbol = lambda: None
+
+    arbol.cargar_proyecto(str(tmp_path / "dos"))
+
+    assert str(tmp_path / "uno" / "src") in arbol._abiertas
+
+
+def test_casos_de_practica_tienen_cuatro_retos_crecientes():
+    practica = guia.POR_ID["practica"]
+    retos = [bloque.titulo for bloque in practica.bloques if isinstance(bloque, Codigo)]
+
+    assert len(retos) >= 4
+    assert "Reto: abre la caja fuerte" in retos
+    assert "Reto: encuentra al culpable" in retos
+    assert "Reto: suma del cofre" in retos
+    assert "Reto: abre el tablero sellado" in retos
+
+
 def test_la_guia_documenta_todas_las_palabras_reservadas():
     from core.tokens import PALABRAS_RESERVADAS
 

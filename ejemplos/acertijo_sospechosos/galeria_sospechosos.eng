@@ -1,0 +1,31 @@
+{ Acertijo 2: el sospechoso de la galeria }
+escena EsCulpable(coartada: declaracion, huella: declaracion)::declaracion inicio
+    concluir coartada y huella!
+fin!
+
+caso GaleriaDelMuseo abierto
+    revelar('Una obra desaparecio de la galeria del museo.')!
+    revelar('Hay tres sospechosos. Solo quien no tiene coartada y cuya huella coincide es culpable.')!
+
+    pista tieneCoartada = declaracion(valor: culpable)!
+    pista huellaCoincide = declaracion(valor: NoCulpable)!
+
+    pista esSospechoso = resolver EsCulpable(no(tieneCoartada), huellaCoincide)!
+    evaluar si (esSospechoso == culpable) inicio
+        revelar('El sospechoso A pudo cometer el robo.')!
+    fin!
+    sino inicio
+        revelar('El sospechoso A queda descartado.')!
+    fin!
+
+    tieneCoartada = NoCulpable!
+    huellaCoincide = culpable!
+    esSospechoso = resolver EsCulpable(no(tieneCoartada), huellaCoincide)!
+
+    evaluar si (esSospechoso == culpable) inicio
+        revelar('El sospechoso B es el culpable. ¡El caso esta resuelto!')!
+    fin!
+    sino inicio
+        revelar('Aun queda un sospechoso por investigar.')!
+    fin!
+caso GaleriaDelMuseo cerrado!

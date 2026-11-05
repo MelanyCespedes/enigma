@@ -1,0 +1,24 @@
+{ Acertijo 1: la caja fuerte de la torre del reloj }
+escena CalcularCodigo(digitouno: entero, digitodos: entero)::entero inicio
+    concluir conectar(intensificar(digitouno, 10), digitodos)!
+fin!
+
+caso CajaFuerte abierto
+    revelar('La caja fuerte solo acepta un codigo de dos cifras.')!
+    revelar('Primera pista: el doble de 3.')!
+    revelar('Segunda pista: el numero de campanadas al mediodia menos 8.')!
+
+    pista digitouno = entero(valor: 0)!
+    pista digitodos = entero(valor: 0)!
+    digitouno = intensificar(3, 2)!
+    digitodos = descartar(12, 8)!
+    pista codigo = resolver CalcularCodigo(digitouno, digitodos)!
+
+    revelar('Codigo calculado:', codigo)!
+    evaluar si (codigo == 64) inicio
+        revelar('La caja se abre. ¡La torre conserva su secreto!')!
+    fin!
+    sino inicio
+        revelar('La caja permanece cerrada. Revisa las pistas.')!
+    fin!
+caso CajaFuerte cerrado!

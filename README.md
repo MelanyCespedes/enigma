@@ -50,6 +50,15 @@ caso CasoPromedio abierto
 caso CasoPromedio cerrado!
 ```
 
+## Acertijos narrativos
+
+El proyecto incluye retos completos que el estudiante puede abrir y ejecutar en el IDE:
+
+- [`acertijo_caja_fuerte`](ejemplos/acertijo_caja_fuerte/caja_fuerte.eng): calcula un código de dos
+  cifras a partir de pistas matemáticas para abrir una caja de la torre del reloj.
+- [`acertijo_sospechosos`](ejemplos/acertijo_sospechosos/galeria_sospechosos.eng): analiza coartadas
+  y huellas para deducir quién robó una obra del museo.
+
 Resumen de la sintaxis
 
 | Concepto | Palabras reservadas |

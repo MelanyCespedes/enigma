@@ -229,7 +229,15 @@ class GuiaDetective(tk.Frame):
         return boton
 
     def _insertar(self, texto: str, boton: tk.Label) -> None:
-        if self._al_insertar(texto):
+        codigo_bloque = next(
+            (
+                bloque for bloque in self._seccion.bloques
+                if isinstance(bloque, Codigo) and bloque.texto == texto
+            ),
+            None,
+        )
+        nombre = codigo_bloque.titulo if codigo_bloque is not None else "codigo_enigma"
+        if self._al_insertar(texto, nombre):
             self._avisar(boton, "¡Insertado!")
 
     def _copiar(self, texto: str, boton: tk.Label) -> None:

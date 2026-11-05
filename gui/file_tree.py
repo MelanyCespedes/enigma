@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import shutil
 import tkinter as tk
 from tkinter import filedialog, ttk
 
@@ -13,6 +14,15 @@ EXTENSION = ".eng"
 ARCHIVO_PROYECTO = ".enigma_proyecto.json"
 CARPETAS_IGNORADAS = {"__pycache__", "venv", "env", "node_modules"}
 CARACTERES_INVALIDOS = re.compile(r'[<>:"/\\|?*]')
+
+
+def ruta_proyecto_predeterminada() -> str:
+    documentos = os.path.join(os.path.expanduser("~"), "Documents")
+    onedrive_documentos = os.path.join(os.path.expanduser("~"), "OneDrive", "Documents")
+    if os.path.isdir(onedrive_documentos):
+        documentos = onedrive_documentos
+    destino = os.path.join(documentos, "Enigma") if os.path.isdir(documentos) else os.path.join(os.path.expanduser("~"), "Enigma")
+    return os.path.abspath(destino)
 
 ARCHIVO = "archivo"
 CARPETA = "carpeta"
@@ -112,6 +122,7 @@ class ArbolArchivos(tk.Frame):
         self.on_proyecto_cargado = on_proyecto_cargado
 
         self.directorio_proyecto: str | None = None
+        self.proyectos_abiertos: list[str] = []
         # Ruta relativa al proyecto, con '/', ej. "src/caso.eng" (o "principal.eng")
         self.archivo_principal: str | None = None
         self.archivo_activo: str | None = None  # ruta absoluta
@@ -186,8 +197,11 @@ class ArbolArchivos(tk.Frame):
     # ---------- proyecto ----------
 
     def cargar_proyecto(self, ruta_carpeta: str) -> None:
+        ruta_carpeta = os.path.abspath(ruta_carpeta)
+        if ruta_carpeta not in self.proyectos_abiertos:
+            self.proyectos_abiertos.append(ruta_carpeta)
         self.directorio_proyecto = ruta_carpeta
-        self._abiertas = {ruta_carpeta}
+        self._abiertas.add(ruta_carpeta)
         self._seleccion = None
         self.archivo_activo = None
         self._cargar_configuracion_proyecto()
@@ -203,7 +217,16 @@ class ArbolArchivos(tk.Frame):
     # ---------- dibujo del arbol ----------
 
     def _ruta_relativa(self, ruta: str) -> str:
-        return os.path.relpath(ruta, self.directorio_proyecto).replace(os.sep, "/")
+        proyecto = self._proyecto_de(ruta)
+        return os.path.relpath(ruta, proyecto).replace(os.sep, "/") if proyecto else ruta
+
+    def _proyecto_de(self, ruta: str) -> str | None:
+        ruta = os.path.abspath(ruta)
+        coincidencias = [
+            proyecto for proyecto in self.proyectos_abiertos
+            if ruta == proyecto or ruta.startswith(proyecto + os.sep)
+        ]
+        return max(coincidencias, key=len, default=None)
 
     def _es_principal(self, ruta: str) -> bool:
         return self.archivo_principal is not None and self._ruta_relativa(ruta) == self.archivo_principal
@@ -223,20 +246,15 @@ class ArbolArchivos(tk.Frame):
             self._seleccion = seleccionar
         for hijo in self._filas.winfo_children():
             hijo.destroy()
-        if not self.directorio_proyecto:
+        if not self.proyectos_abiertos:
             self._dibujar_vacio()
             return
 
-        # Que el archivo principal y el activo siempre sean visibles.
-        self._abrir_carpetas_de(self.archivo_activo)
-        if self.archivo_principal:
-            self._abrir_carpetas_de(self.obtener_archivo_principal())
-
-        raiz = self.directorio_proyecto
-        nombre = os.path.basename(raiz.rstrip("/\\")) or raiz
-        self._agregar_fila(raiz, CARPETA, 0, nombre, raiz=True)
-        if raiz in self._abiertas:
-            self._insertar_contenido(raiz, 1)
+        for raiz in self.proyectos_abiertos:
+            nombre = os.path.basename(raiz.rstrip("/\\")) or raiz
+            self._agregar_fila(raiz, CARPETA, 0, nombre, raiz=True)
+            if raiz in self._abiertas:
+                self._insertar_contenido(raiz, 1)
         self.update_idletasks()
         self._ajustar()
 
@@ -302,6 +320,12 @@ class ArbolArchivos(tk.Frame):
 
     def _al_hacer_clic(self, ruta: str, tipo: str) -> None:
         if tipo == CARPETA:
+            proyecto = self._proyecto_de(ruta)
+            if proyecto and proyecto != self.directorio_proyecto:
+                self.cargar_proyecto(proyecto)
+                if ruta == proyecto:
+                    self._abiertas.add(ruta)
+                    return
             if ruta in self._abiertas:
                 self._abiertas.discard(ruta)
             else:
@@ -309,6 +333,9 @@ class ArbolArchivos(tk.Frame):
             self._seleccion = (ruta, tipo)
             self._refrescar_arbol()
         else:
+            proyecto = self._proyecto_de(ruta)
+            if proyecto and proyecto != self.directorio_proyecto:
+                self.cargar_proyecto(proyecto)
             self._seleccion = (ruta, tipo)
             self.establecer_archivo_activo(ruta)
             if self.on_abrir_archivo:
@@ -316,6 +343,9 @@ class ArbolArchivos(tk.Frame):
 
     def _archivo_seleccionado(self) -> str | None:
         return self._seleccion[0] if self._seleccion and self._seleccion[1] == ARCHIVO else None
+
+    def _carpeta_seleccionada(self) -> str | None:
+        return self._seleccion[0] if self._seleccion and self._seleccion[1] == CARPETA else None
 
     def _carpeta_destino(self) -> str:
         """Carpeta donde crear algo nuevo: la seleccionada, la del archivo
@@ -330,9 +360,55 @@ class ArbolArchivos(tk.Frame):
         self.archivo_activo = ruta
         if ruta is not None:
             self._seleccion = (ruta, ARCHIVO)
+            self._abrir_carpetas_de(ruta)
         self._refrescar_arbol()
 
     # ---------- crear ----------
+
+    def _crear_proyecto_predeterminado(self) -> bool:
+        nombre = dialogos.preguntar_texto(
+            self,
+            "Nuevo proyecto",
+            "Nombre de la carpeta principal del proyecto:",
+        )
+        if nombre is None:
+            return False
+
+        nombre = nombre.strip()
+        if not nombre or not self._nombre_valido(nombre, "una carpeta de proyecto"):
+            return False
+
+        return self._crear_proyecto_nuevo(nombre, self._elegir_ubicacion_proyecto())
+
+    def _elegir_ubicacion_proyecto(self) -> str | None:
+        carpeta_base = ruta_proyecto_predeterminada()
+        os.makedirs(carpeta_base, exist_ok=True)
+        return filedialog.askdirectory(
+            parent=self.winfo_toplevel(),
+            title="Elegir ubicación para la carpeta principal del proyecto",
+            initialdir=carpeta_base,
+        )
+
+    def _crear_proyecto_nuevo(self, nombre: str, carpeta_base: str | None = None) -> bool:
+        if carpeta_base is None:
+            return False
+        carpeta = os.path.join(carpeta_base, nombre)
+        try:
+            if os.path.exists(carpeta):
+                dialogos.mostrar_error(
+                    self,
+                    f"Ya existe una carpeta llamada '{nombre}' en la ubicación predeterminada.",
+                )
+                return False
+            os.makedirs(carpeta, exist_ok=True)
+            self.cargar_proyecto(carpeta)
+            return True
+        except OSError as error:
+            dialogos.mostrar_error(
+                self,
+                f"No se pudo crear el proyecto:\n{error}",
+            )
+            return False
 
     def _nombre_valido(self, nombre: str, que: str) -> bool:
         if CARACTERES_INVALIDOS.search(nombre) or nombre in (".", ".."):
@@ -344,8 +420,8 @@ class ArbolArchivos(tk.Frame):
 
     def nuevo_archivo(self, carpeta: str | None = None) -> None:
         if not self.directorio_proyecto:
-            dialogos.mostrar_aviso(self, "Primero abre una carpeta de proyecto.")
-            return
+            if not self._crear_proyecto_predeterminado():
+                return
 
         destino = carpeta or self._carpeta_destino()
         ubicacion = self._ruta_relativa(destino) if destino != self.directorio_proyecto else ""
@@ -375,10 +451,54 @@ class ArbolArchivos(tk.Frame):
         if self.on_abrir_archivo:
             self.on_abrir_archivo(ruta)
 
+    def crear_archivo_desde_guia(self, codigo: str, nombre: str) -> str | None:
+        """Crea y abre automaticamente un archivo con contenido generado por la Guia."""
+        nombre_predeterminado = re.sub(r"[^\w\-]+", "_", nombre, flags=re.UNICODE).strip("_").lower()
+        nombre_predeterminado = nombre_predeterminado or "caso_practica"
+        nombre_proyecto = dialogos.preguntar_texto(
+            self,
+            "Nuevo proyecto de práctica",
+            "Escribe el nombre de la carpeta principal para este caso:",
+            valor_inicial=nombre_predeterminado,
+        )
+        if nombre_proyecto is None:
+            return None
+        nombre_proyecto = nombre_proyecto.strip()
+        if not nombre_proyecto or not self._nombre_valido(nombre_proyecto, "una carpeta de proyecto"):
+            return None
+        ubicacion = self._elegir_ubicacion_proyecto()
+        if ubicacion is None:
+            return None
+        if not self._crear_proyecto_nuevo(nombre_proyecto, ubicacion):
+            return None
+
+        nombre_seguro = re.sub(r"[^\w\-]+", "_", nombre, flags=re.UNICODE).strip("_").lower()
+        nombre_seguro = nombre_seguro or "reto_enigma"
+        ruta_base = os.path.join(self.directorio_proyecto, nombre_seguro)
+        ruta = ruta_base + EXTENSION
+        contador = 2
+        while os.path.exists(ruta):
+            ruta = f"{ruta_base}_{contador}{EXTENSION}"
+            contador += 1
+
+        try:
+            with open(ruta, "w", encoding="utf-8") as archivo:
+                archivo.write(codigo)
+        except OSError as error:
+            dialogos.mostrar_error(self, f"No se pudo crear el archivo:\n{error}")
+            return None
+
+        self._abiertas.add(self.directorio_proyecto)
+        self._refrescar_arbol(seleccionar=(ruta, ARCHIVO))
+        if self.on_abrir_archivo:
+            self.on_abrir_archivo(ruta)
+        self.establecer_archivo_activo(ruta)
+        return ruta
+
     def nueva_carpeta(self, carpeta: str | None = None) -> None:
         if not self.directorio_proyecto:
-            dialogos.mostrar_aviso(self, "Primero abre una carpeta de proyecto.")
-            return
+            if not self._crear_proyecto_predeterminado():
+                return
 
         destino = carpeta or self._carpeta_destino()
         nombre = dialogos.preguntar_texto(self, "Nueva carpeta", "Nombre de la carpeta:")
@@ -396,6 +516,72 @@ class ArbolArchivos(tk.Frame):
         os.mkdir(ruta)
         self._abiertas.add(destino)
         self._refrescar_arbol(seleccionar=(ruta, CARPETA))
+
+    def _renombrar_carpeta_seleccionada(self) -> None:
+        ruta = self._carpeta_seleccionada()
+        if not ruta or ruta in self.proyectos_abiertos:
+            return
+
+        nombre = dialogos.preguntar_texto(
+            self, "Renombrar carpeta", "Nuevo nombre:",
+            valor_inicial=os.path.basename(ruta),
+        )
+        if not nombre:
+            return
+        nombre = nombre.strip()
+        if not nombre or not self._nombre_valido(nombre, "una carpeta"):
+            return
+
+        nueva_ruta = os.path.join(os.path.dirname(ruta), nombre)
+        if os.path.exists(nueva_ruta):
+            dialogos.mostrar_error(self, f"Ya existe una carpeta llamada '{nombre}'.")
+            return
+
+        os.rename(ruta, nueva_ruta)
+        self._abiertas = {
+            nueva_ruta + carpeta[len(ruta):] if carpeta == ruta or carpeta.startswith(ruta + os.sep) else carpeta
+            for carpeta in self._abiertas
+        }
+        if self.archivo_principal:
+            principal = os.path.normpath(os.path.join(self.directorio_proyecto, self.archivo_principal))
+            if principal.startswith(ruta + os.sep):
+                nuevo_principal = nueva_ruta + principal[len(ruta):]
+                self.archivo_principal = os.path.relpath(nuevo_principal, self.directorio_proyecto).replace(os.sep, "/")
+                self._guardar_configuracion_proyecto()
+
+        self._seleccion = None
+        self._refrescar_arbol(seleccionar=(nueva_ruta, CARPETA))
+
+    def _eliminar_carpeta_seleccionada(self) -> None:
+        ruta = self._carpeta_seleccionada()
+        if not ruta or ruta in self.proyectos_abiertos:
+            return
+
+        nombre = os.path.basename(ruta)
+        if not dialogos.confirmar(
+            self,
+            f"¿Eliminar la carpeta '{nombre}' y todo su contenido? Esta acción no se puede deshacer.",
+            si="Eliminar", no="Cancelar",
+        ):
+            return
+
+        archivos = []
+        for raiz, _, nombres in os.walk(ruta):
+            archivos.extend(os.path.join(raiz, archivo) for archivo in nombres)
+        shutil.rmtree(ruta)
+
+        if self.archivo_principal:
+            principal = os.path.normpath(os.path.join(self.directorio_proyecto, self.archivo_principal))
+            if principal.startswith(ruta + os.sep):
+                self.archivo_principal = None
+                self._guardar_configuracion_proyecto()
+
+        self._seleccion = None
+        self._abiertas = {carpeta for carpeta in self._abiertas if carpeta != ruta and not carpeta.startswith(ruta + os.sep)}
+        self._refrescar_arbol()
+        if self.on_eliminado:
+            for archivo in archivos:
+                self.on_eliminado(archivo)
 
     # ---------- renombrar / eliminar / principal ----------
 
@@ -487,6 +673,9 @@ class ArbolArchivos(tk.Frame):
         else:
             self.menu.add_command(label="Nuevo archivo aquí", command=self.nuevo_archivo)
             self.menu.add_command(label="Nueva carpeta aquí", command=self.nueva_carpeta)
+            self.menu.add_separator()
+            self.menu.add_command(label="Renombrar", command=self._renombrar_carpeta_seleccionada)
+            self.menu.add_command(label="Eliminar carpeta", command=self._eliminar_carpeta_seleccionada)
         self.menu.tk_popup(evento.x_root, evento.y_root)
 
     # ---------- consultas ----------

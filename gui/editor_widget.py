@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import tkinter as tk
+from tkinter import filedialog
 from tkinter import ttk
 
 from gui import dialogos, tema
@@ -86,7 +87,47 @@ class EditorCodigo(ttk.Frame):
 
     def guardar_activo(self) -> bool:
         pestana = self._pestana_activa()
-        return self._guardar(pestana) if pestana else False
+        if pestana is None:
+            return False
+        if not os.path.isfile(pestana.ruta):
+            return self.guardar_como()
+        return self._guardar(pestana)
+
+    def guardar_como(self) -> bool:
+        pestana = self._pestana_activa()
+        if pestana is None:
+            dialogos.mostrar_aviso(self, "No hay ningun archivo abierto para guardar.")
+            return False
+
+        ruta = filedialog.asksaveasfilename(
+            parent=self.winfo_toplevel(),
+            title="Guardar como",
+            initialdir=os.path.dirname(pestana.ruta),
+            initialfile=os.path.basename(pestana.ruta),
+            defaultextension=".eng",
+            filetypes=[("Programas Enigma", "*.eng"), ("Todos los archivos", "*.*")],
+        )
+        if not ruta:
+            return False
+
+        ruta = os.path.abspath(ruta)
+        contenido = pestana.obtener_contenido().replace("\n", pestana.fin_de_linea())
+        try:
+            with open(ruta, "w", encoding="utf-8", newline="") as archivo:
+                archivo.write(contenido)
+        except OSError as error:
+            dialogos.mostrar_error(self, f"No se pudo guardar '{ruta}':\n{error}")
+            return False
+
+        antigua = pestana.ruta
+        pestana.ruta = ruta
+        pestana.marcar_guardado()
+        self._pestanas[ruta] = self._pestanas.pop(antigua, pestana)
+        self._activa = ruta
+        self.barra.renombrar(antigua, ruta, os.path.basename(ruta), False)
+        self.barra.seleccionar(ruta)
+        self._notificar_estado()
+        return True
 
     def guardar_todos(self) -> bool:
         """Guarda todos los archivos modificados. True si todo se guardo bien."""
@@ -214,6 +255,8 @@ class EditorCodigo(ttk.Frame):
         self._notificar_estado()
 
     def _guardar(self, pestana: PestanaEditor) -> bool:
+        if not os.path.isfile(pestana.ruta):
+            return self.guardar_como()
         contenido = pestana.obtener_contenido().replace("\n", pestana.fin_de_linea())
         try:
             with open(pestana.ruta, "w", encoding="utf-8", newline="") as f:

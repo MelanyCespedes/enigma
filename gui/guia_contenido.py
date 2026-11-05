@@ -652,6 +652,7 @@ EJEMPLOS = Seccion(
     resumen="Programas completos para insertar y probar.",
     bloques=(
         Parrafo("Pulsa «Insertar en el editor» para copiar un ejemplo en el archivo abierto, y ejecútalo con Ctrl+Enter."),
+        Parrafo("También puedes abrir los acertijos completos desde la carpeta «ejemplos» del proyecto."),
 
         Codigo(
             "caso HolaDetective abierto\n"
@@ -733,6 +734,159 @@ EJEMPLOS = Seccion(
             "caso Descartes cerrado!",
             "Deducción con lógica", ejecutable=True,
         ),
+        Codigo(
+            "escena CalcularCodigo(digitouno: entero, digitodos: entero)::entero inicio\n"
+            "    concluir conectar(intensificar(digitouno, 10), digitodos)!\n"
+            "fin!\n"
+            "\n"
+            "caso CajaFuerte abierto\n"
+            "    revelar('La caja fuerte solo acepta un codigo de dos cifras.')!\n"
+            "    revelar('Primera pista: el doble de 3.')!\n"
+            "    revelar('Segunda pista: las 12 campanadas menos 8.')!\n"
+            "    pista digitouno = entero(valor: 0)!\n"
+            "    pista digitodos = entero(valor: 0)!\n"
+            "    digitouno = intensificar(3, 2)!\n"
+            "    digitodos = descartar(12, 8)!\n"
+            "    pista codigo = resolver CalcularCodigo(digitouno, digitodos)!\n"
+            "\n"
+            "    revelar('Codigo calculado:', codigo)!\n"
+            "    evaluar si (codigo == 64) inicio\n"
+            "        revelar('La caja se abre. ¡La torre conserva su secreto!')!\n"
+            "    fin!\n"
+            "    sino inicio\n"
+            "        revelar('La caja permanece cerrada. Revisa las pistas.')!\n"
+            "    fin!\n"
+            "caso CajaFuerte cerrado!",
+            "Acertijo: la caja fuerte de la torre del reloj", ejecutable=True,
+        ),
+        Codigo(
+            "escena EsCulpable(coartada: declaracion, huella: declaracion)::declaracion inicio\n"
+            "    concluir coartada y huella!\n"
+            "fin!\n"
+            "\n"
+            "caso GaleriaDelMuseo abierto\n"
+            "    revelar('Una obra desaparecio de la galeria del museo.')!\n"
+            "    pista tieneCoartada = declaracion(valor: culpable)!\n"
+            "    pista huellaCoincide = declaracion(valor: NoCulpable)!\n"
+            "    pista esSospechoso = resolver EsCulpable(no(tieneCoartada), huellaCoincide)!\n"
+            "\n"
+            "    evaluar si (esSospechoso == culpable) inicio\n"
+            "        revelar('El sospechoso A pudo cometer el robo.')!\n"
+            "    fin!\n"
+            "    sino inicio\n"
+            "        revelar('El sospechoso A queda descartado.')!\n"
+            "    fin!\n"
+            "\n"
+            "    tieneCoartada = NoCulpable!\n"
+            "    huellaCoincide = culpable!\n"
+            "    esSospechoso = resolver EsCulpable(no(tieneCoartada), huellaCoincide)!\n"
+            "\n"
+            "    evaluar si (esSospechoso == culpable) inicio\n"
+            "        revelar('El sospechoso B es el culpable. ¡El caso esta resuelto!')!\n"
+            "    fin!\n"
+            "caso GaleriaDelMuseo cerrado!",
+            "Acertijo: el sospechoso de la galería", ejecutable=True,
+        ),
+    ),
+)
+
+
+PRACTICA = Seccion(
+    id="practica",
+    titulo="Casos de práctica",
+    resumen="Recibe un caso y escribe tú mismo la solución.",
+    bloques=(
+        Parrafo("Estos apartados presentan el desafío, pero no incluyen la solución completa. Pulsa «Insertar en el editor», cambia el código de inicio y compila con Ctrl+Enter."),
+        Subtitulo("Caso 1: La caja de la torre"),
+        Lista((
+            "Una caja fuerte tiene un código de dos cifras.",
+            "El primer dígito es el doble de 3.",
+            "El segundo dígito son las 12 campanadas menos 8.",
+            "Calcula el código y revela si es igual a 64.",
+        )),
+        Nota("Objetivo: usar operaciones aritméticas, una decisión evaluar si / sino y revelar."),
+        Codigo(
+            "caso CajaDePractica abierto\n"
+            "    { Calcula el primer digito a partir de 3. }\n"
+            "    pista primero = entero(valor: 0)!\n"
+            "\n"
+            "    { Calcula el segundo digito a partir de 12. }\n"
+            "    pista segundo = entero(valor: 0)!\n"
+            "\n"
+            "    { Usa los dos digitos para formar el codigo. }\n"
+            "    pista codigo = entero(valor: 0)!\n"
+            "\n"
+            "    revelar('Tu codigo es:', codigo)!\n"
+            "caso CajaDePractica cerrado!",
+            "Reto: abre la caja fuerte", ejecutable=False,
+        ),
+        Subtitulo("Caso 2: El sospechoso de la galería"),
+        Lista((
+            "Investiga los sospechosos A y B.",
+            "Un sospechoso es culpable solo si no tiene coartada y su huella coincide.",
+            "El sospechoso A sí tiene coartada y su huella no coincide.",
+            "El sospechoso B no tiene coartada y su huella sí coincide.",
+        )),
+        Nota("Objetivo: usar declaracion, los operadores no / y, una decisión y revelar el sospechoso correcto."),
+        Codigo(
+            "caso SospechosoDePractica abierto\n"
+            "    pista sospechosoA_coartada = declaracion(valor: culpable)!\n"
+            "    pista sospechosoA_huella = declaracion(valor: NoCulpable)!\n"
+            "\n"
+            "    pista sospechosoB_coartada = declaracion(valor: NoCulpable)!\n"
+            "    pista sospechosoB_huella = declaracion(valor: culpable)!\n"
+            "\n"
+            "    { Evalua cada sospechoso con: no(tieneCoartada) y huellaCoincide. }\n"
+            "    revelar('Investiga al sospechoso A y despues al sospechoso B.')!\n"
+            "caso SospechosoDePractica cerrado!",
+            "Reto: encuentra al culpable", ejecutable=False,
+        ),
+        Subtitulo("Caso 3: La suma del cofre"),
+        Lista((
+            "El cofre se abrirá con la suma de los números secretos del 1 al 6.",
+            "Recorre esas cifras con un ciclo rastrear.",
+            "Acumula cada cifra en una pista llamada total.",
+            "El cofre se abre únicamente si el total es 21.",
+        )),
+        Nota("Objetivo: combinar ciclo, acumulación y condición. Este reto exige mantener el estado entre varias repeticiones."),
+        Codigo(
+            "caso CofreDePractica abierto\n"
+            "    pista total = entero(valor: 0)!\n"
+            "\n"
+            "    { Recorre los numeros secretos del 1 al 6 y acumula cada uno. }\n"
+            "    rastrear numero desde 1 hasta 6 inicio\n"
+            "        { Asigna aqui la operacion necesaria para actualizar total. }\n"
+            "    fin!\n"
+            "\n"
+            "    revelar('Suma encontrada:', total)!\n"
+            "caso CofreDePractica cerrado!",
+            "Reto: suma del cofre", ejecutable=False,
+        ),
+        Subtitulo("Caso 4: El camino del tablero sellado"),
+        Lista((
+            "Un mapa contiene filas de pistas representadas por una matriz.",
+            "Coloca los valores 2, 5, 4, 8, 3 y 1 según las instrucciones del tablero.",
+            "Recorre cada casilla con ciclos anidados.",
+            "Solo se abre el camino cuya suma de las seis casillas sea 23.",
+        )),
+        Nota("Objetivo: recorrer una matriz, modificar varias casillas y comprobar el resultado con ciclos anidados."),
+        Codigo(
+            "caso TableroDePractica abierto\n"
+            "    pista mapa = tablero entero[2][3]!\n"
+            "\n"
+            "    { Asigna a las seis casillas los valores indicados por el acertijo. }\n"
+            "    pista suma = entero(valor: 0)!\n"
+            "\n"
+            "    rastrear fila desde 0 hasta 1 inicio\n"
+            "        rastrear columna desde 0 hasta 2 inicio\n"
+            "            { Suma aqui mapa[fila][columna] al total. }\n"
+            "        fin!\n"
+            "    fin!\n"
+            "\n"
+            "    revelar('Suma del camino:', suma)!\n"
+            "caso TableroDePractica cerrado!",
+            "Reto: abre el tablero sellado", ejecutable=False,
+        ),
     ),
 )
 
@@ -772,7 +926,7 @@ ATAJOS = Seccion(
 
 SECCIONES: tuple[Seccion, ...] = (
     PALABRAS, SINTAXIS, CONTROL, FUNCIONES, OPERACIONES,
-    SEMANTICA, TIPOS, IMPORTACIONES, EJEMPLOS, ATAJOS,
+    SEMANTICA, TIPOS, IMPORTACIONES, EJEMPLOS, PRACTICA, ATAJOS,
 )
 
 POR_ID = {s.id: s for s in SECCIONES}

@@ -8,6 +8,7 @@ import tkinter as tk
 from datetime import datetime
 from tkinter import ttk
 
+from core.advertencias import buscar_advertencias
 from core.errors import PistaFallidaDeRazonamiento
 from core.interpreter import ejecutar
 from core.lexer import tokenizar
@@ -120,6 +121,7 @@ class PanelSalida(tk.Frame):
             widget.tag_configure("error", foreground=tema.ERROR)
             widget.tag_configure("ok", foreground=tema.EXITO)
             widget.tag_configure("pista", foreground=tema.AVISO)
+            widget.tag_configure("advertencia", foreground=tema.AVISO)
             widget.tag_configure("prompt", foreground=tema.PURPURA)
             widget.tag_configure("comando", foreground=tema.TEXTO)
             widget.tag_configure("hora", foreground="#525767")
@@ -368,9 +370,14 @@ class PanelSalida(tk.Frame):
 
         self._ultima_firma_error = None  # se resolvio: reinicia el seguimiento
         self.programa_compilado = programa
+        advertencias = buscar_advertencias(programa)
+        for advertencia in advertencias:
+            self._agregar_texto(advertencia.mostrar_completo() + "\n\n", "advertencia")
         self._poner_estado("Compilación exitosa", "listo")
         self._agregar_texto("Compilación exitosa.\n", "ok")
-        self._registrar(f"compilar {nombre_archivo} → exitosa", "ok")
+        if advertencias:
+            self._agregar_texto(f"{len(advertencias)} advertencia(s): revísalas, pero el caso se puede ejecutar.\n", "advertencia")
+        self._registrar(f"compilar {nombre_archivo} → exitosa, {len(advertencias)} advertencia(s)", "ok")
         if self.on_pista:
             self.on_pista(None)
         self._avisar("ok")

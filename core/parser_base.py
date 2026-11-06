@@ -1,4 +1,4 @@
-from core.tokens import Token, TipoToken
+from core.tokens import PALABRAS_RESERVADAS, Token, TipoToken
 from core.errors import ErrorSintactico
 
 TOKENS_TIPO = {
@@ -42,6 +42,17 @@ class _ParserBase:
         if self._verificar(tipo):
             return self._avanzar()
         linea = self._linea_del_faltante()
+        encontrado = self._actual()
+        if tipo == TipoToken.IDENTIFICADOR and encontrado.lexema in PALABRAS_RESERVADAS:
+            raise ErrorSintactico(
+                tipo="Palabra reservada",
+                archivo=self.nombre_archivo,
+                linea=linea,
+                pista=f"'{encontrado.lexema}' es una palabra reservada del lenguaje.",
+                descripcion=f"Se esperaba un nombre pero se encontró la palabra reservada '{encontrado.lexema}'.",
+                causa_posible=f"'{encontrado.lexema}' ya tiene un significado en Enigma y no puede usarse como "
+                              "nombre de pista, parámetro o función. Elige otro nombre.",
+            )
         raise ErrorSintactico(
             tipo="Token inesperado",
             archivo=self.nombre_archivo,

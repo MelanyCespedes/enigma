@@ -87,6 +87,8 @@ El detalle de uso va en el manual de usuario.
 - **Editor** con pestañas, números de línea, resaltado de sintaxis y búsqueda (`Ctrl+F`).
 - **Compilar** y **Ejecutar caso**, con el resultado en el panel inferior (Salida y Terminal).
   `consultar` pide el dato escribiendo en el mismo panel.
+- **Advertencias**: al compilar sin errores, el panel avisa de pistas sin usar, código después
+  de `concluir`, escenas sin `concluir` y parámetros sin usar. El caso se puede ejecutar igual.
 - **Guía del detective** (`F1`): consulta del lenguaje con ejemplos que se insertan en el editor.
 - **Constructor de pistas**: arma código con formularios y lo valida con el compilador.
 - **Innovación, errores en dos pasos**: ante un error el IDE primero da una *pista* que orienta
@@ -128,6 +130,7 @@ enigma/
 │   ├── module_resolver.py Resuelve #expediente y detecta ciclos
 │   ├── symbols.py         Tabla de símbolos y alcances
 │   ├── semantic.py        Valida tipos, alcances, constantes, llamadas…
+│   ├── advertencias.py    Avisos que no detienen el programa (pista sin usar, código inalcanzable…)
 │   ├── interpreter.py     Ejecuta el AST
 │   └── errors.py          Jerarquía de errores (Pista Fallida de Razonamiento)
 ├── gui/               El IDE en tkinter (ventana, editor, árbol, panel de salida, guías)

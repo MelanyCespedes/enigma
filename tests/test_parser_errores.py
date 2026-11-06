@@ -54,3 +54,19 @@ def test_error_incluye_archivo_y_linea():
         _parsear(codigo)
     assert info.value.archivo == "prueba.eng"
     assert info.value.linea == 2  # el '!' falta al final de la linea 2, no en la linea del token siguiente
+
+
+def test_palabra_reservada_como_nombre_da_un_mensaje_claro():
+    codigo = "escena F(y: entero)::entero inicio concluir y! fin!\ncaso Prueba abierto caso Prueba cerrado!"
+    with pytest.raises(ErrorSintactico) as info:
+        _parsear(codigo)
+    assert info.value.tipo == "Palabra reservada"
+    assert "'y'" in info.value.descripcion
+    assert "reservada" in info.value.pista
+
+
+def test_palabra_reservada_valor_como_nombre_de_parametro():
+    codigo = "proceso P(valor: entero) inicio revelar(valor)! fin!\ncaso Prueba abierto caso Prueba cerrado!"
+    with pytest.raises(ErrorSintactico) as info:
+        _parsear(codigo)
+    assert info.value.tipo == "Palabra reservada"

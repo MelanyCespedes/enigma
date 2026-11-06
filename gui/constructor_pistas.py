@@ -1,4 +1,4 @@
-"""Ventana del Constructor de pistas: arma codigo con formularios y lo inserta en el editor."""
+"""Panel del Constructor de pistas (columna derecha): arma codigo con formularios y lo inserta en el editor."""
 from __future__ import annotations
 
 import tkinter as tk
@@ -12,100 +12,54 @@ from gui.pestana_editor import COLORES_RESALTADO
 FAMILIA = "Segoe UI"
 
 
-class _ItemBloque(tk.Frame):
-    def __init__(self, master, bloque: cc.Bloque, comando):
-        super().__init__(master, bg=tema.FONDO, cursor="hand2")
-        self.bloque = bloque
-        self._borde = tk.Frame(self, width=3, bg=tema.FONDO)
-        self._borde.pack(side="left", fill="y")
-        self._texto = tk.Label(
-            self, text=bloque.titulo, bg=tema.FONDO, fg=tema.TEXTO, font=(FAMILIA, 9), anchor="w", padx=12, pady=8
-        )
-        self._texto.pack(side="left", fill="x", expand=True)
-        self._seleccionado = False
-        for widget in (self, self._texto, self._borde):
-            widget.bind("<Button-1>", lambda e: comando(bloque.id))
-            widget.bind("<Enter>", lambda e: self._pintar(True))
-            widget.bind("<Leave>", lambda e: self._pintar(False))
+class ConstructorPistas(tk.Frame):
+    """Selector de bloques arriba, formulario apilado en medio y vista previa abajo.
 
-    def marcar(self, seleccionado: bool) -> None:
-        self._seleccionado = seleccionado
-        self._pintar(False)
+    al_insertar(texto) -> bool  inserta el codigo en el editor (True si se pudo)
+    al_cerrar()                 vuelve a la guia rapida
+    """
 
-    def _pintar(self, sobre: bool) -> None:
-        fondo = tema.SELECCION if self._seleccionado else (tema.SELECCION_SUAVE if sobre else tema.FONDO)
-        self.config(bg=fondo)
-        self._texto.config(bg=fondo, fg=tema.TEXTO_FUERTE if self._seleccionado else tema.TEXTO)
-        self._borde.config(bg=tema.ACENTO if self._seleccionado else fondo)
-
-
-class ConstructorPistas(tk.Toplevel):
-    """Ventana (no modal) con los bloques a la izquierda, el formulario y la vista previa."""
-
-    def __init__(self, master, al_insertar):
-        super().__init__(master)
+    def __init__(self, master, al_insertar, al_cerrar):
+        super().__init__(master, bg=tema.FONDO)
         self._al_insertar = al_insertar
-        self.title("Constructor de pistas")
-        self.configure(bg=tema.FONDO)
-        self.geometry("820x580")
-        self.minsize(720, 520)
-        self.transient(master.winfo_toplevel())
-
         self._variables: dict[str, tk.Variable] = {}
         self._textos: dict[str, tk.Text] = {}
         self._bloque: cc.Bloque = cc.BLOQUES[0]
-        self._items: dict[str, _ItemBloque] = {}
+        self._valido = True
 
-        self._construir()
+        self._construir_cabecera(al_cerrar)
+        self._construir_pie()
+        self._construir_cuerpo()
         self._elegir(cc.BLOQUES[0].id)
-        tema.oscurecer_barra_titulo(self)
-        self.bind("<Escape>", lambda e: self.destroy())
 
     # ---------- construccion ----------
 
-    def _construir(self) -> None:
-        lateral = tk.Frame(self, bg=tema.FONDO, width=240)
-        lateral.pack(side="left", fill="y")
-        lateral.pack_propagate(False)
-        tk.Label(
-            lateral, text="BLOQUES", bg=tema.FONDO, fg=tema.TEXTO_SUAVE, font=(FAMILIA, 8, "bold"),
-            anchor="w", padx=18, pady=16,
-        ).pack(side="top", fill="x")
-        for bloque in cc.BLOQUES:
-            item = _ItemBloque(lateral, bloque, self._elegir)
-            item.pack(side="top", fill="x", padx=(10, 10))
-            self._items[bloque.id] = item
-        tk.Frame(self, width=1, bg=tema.BORDE).pack(side="left", fill="y")
+    def _construir_cabecera(self, al_cerrar) -> None:
+        barra = tk.Frame(self, bg=tema.FONDO)
+        barra.pack(side="top", fill="x")
+        tk.Frame(self, height=1, bg=tema.BORDE).pack(side="top", fill="x")
 
-        derecha = tk.Frame(self, bg=tema.FONDO)
-        derecha.pack(side="left", fill="both", expand=True, padx=24, pady=18)
-        self._titulo = tk.Label(derecha, bg=tema.FONDO, fg=tema.TEXTO_FUERTE, font=(FAMILIA, 13, "bold"), anchor="w")
-        self._titulo.pack(side="top", fill="x")
-        self._descripcion = tk.Label(derecha, bg=tema.FONDO, fg=tema.TEXTO_APAGADO, font=(FAMILIA, 9), anchor="w")
-        self._descripcion.pack(side="top", fill="x", pady=(2, 14))
-
-        self._formulario = tk.Frame(derecha, bg=tema.FONDO)
-        self._formulario.pack(side="top", fill="x")
-
-        tk.Label(
-            derecha, text="VISTA PREVIA", bg=tema.FONDO, fg=tema.TEXTO_SUAVE, font=(FAMILIA, 8, "bold"), anchor="w"
-        ).pack(side="top", fill="x", pady=(16, 6))
-        marco = tk.Frame(derecha, bg=tema.EDITOR, highlightthickness=1, highlightbackground=tema.BORDE)
-        marco.pack(side="top", fill="both", expand=True)
-        self._vista = tk.Text(
-            marco, height=7, state="disabled", wrap="none", bg=tema.EDITOR, fg=tema.TEXTO, font=tema.FUENTE_CODIGO[:1] + (10,),
-            relief="flat", borderwidth=0, highlightthickness=0, padx=12, pady=10, spacing1=1, spacing3=1,
-            selectbackground=tema.SELECCION,
+        BotonPlano(barra, "‹", lambda: self._mover(-1), font=(FAMILIA, 12)).pack(side="left")
+        self._selector = tk.Menubutton(
+            barra, bg=tema.FONDO, fg=tema.TEXTO, activebackground=tema.SELECCION_SUAVE,
+            activeforeground=tema.TEXTO, relief="flat", borderwidth=0, padx=8, pady=6,
+            font=(FAMILIA, 10, "bold"), anchor="w",
         )
-        self._vista.pack(fill="both", expand=True)
-        for etiqueta, color in COLORES_RESALTADO.items():
-            self._vista.tag_configure("r_" + etiqueta, foreground=color)
+        menu = tk.Menu(self._selector, tearoff=0, borderwidth=1)
+        for bloque in cc.BLOQUES:
+            menu.add_command(label=bloque.titulo, command=lambda b=bloque.id: self._elegir(b))
+        self._selector.config(menu=menu)
+        self._selector.pack(side="left", fill="x", expand=True)
+        BotonPlano(barra, "›", lambda: self._mover(1), font=(FAMILIA, 12)).pack(side="left")
+        BotonPlano(barra, "×", al_cerrar, font=(FAMILIA, 12)).pack(side="left")
 
-        self._estado = tk.Label(derecha, bg=tema.FONDO, font=(FAMILIA, 9), anchor="w", justify="left", wraplength=480)
-        self._estado.pack(side="top", fill="x", pady=(8, 0))
+    def _construir_pie(self) -> None:
+        """Estado y botones van abajo del todo para que nunca queden fuera de vista."""
+        pie = tk.Frame(self, bg=tema.FONDO)
+        pie.pack(side="bottom", fill="x", padx=16, pady=(6, 14))
 
-        botones = tk.Frame(derecha, bg=tema.FONDO)
-        botones.pack(side="top", fill="x", pady=(12, 0))
+        botones = tk.Frame(pie, bg=tema.FONDO)
+        botones.pack(side="bottom", fill="x")
         self._boton_insertar = tk.Label(
             botones, text="Insertar en el editor", bg=tema.ACENTO, fg="#1b1c25", font=(FAMILIA, 9, "bold"),
             padx=14, pady=7, cursor="hand2",
@@ -113,14 +67,49 @@ class ConstructorPistas(tk.Toplevel):
         self._boton_insertar.pack(side="left")
         self._boton_insertar.bind("<Button-1>", lambda e: self._insertar())
         BotonPlano(botones, "Copiar", self._copiar, color=tema.TEXTO).pack(side="left", padx=(8, 0))
-        BotonPlano(botones, "Cerrar", self.destroy, color=tema.TEXTO_APAGADO).pack(side="right")
+
+        self._estado = tk.Label(pie, bg=tema.FONDO, font=(FAMILIA, 9), anchor="w", justify="left", wraplength=280)
+        self._estado.pack(side="bottom", fill="x", pady=(0, 10))
+        self._estado.bind("<Configure>", lambda e: self._estado.config(wraplength=max(120, e.width - 4)))
+
+    def _construir_cuerpo(self) -> None:
+        cuerpo = tk.Frame(self, bg=tema.FONDO)
+        cuerpo.pack(side="top", fill="both", expand=True, padx=16, pady=(14, 0))
+
+        self._titulo = tk.Label(cuerpo, bg=tema.FONDO, fg=tema.TEXTO_FUERTE, font=(FAMILIA, 12, "bold"), anchor="w")
+        self._titulo.pack(side="top", fill="x")
+        self._descripcion = tk.Label(
+            cuerpo, bg=tema.FONDO, fg=tema.TEXTO_APAGADO, font=(FAMILIA, 9), anchor="w", justify="left", wraplength=280
+        )
+        self._descripcion.pack(side="top", fill="x", pady=(2, 10))
+        self._descripcion.bind("<Configure>", lambda e: self._descripcion.config(wraplength=max(120, e.width - 4)))
+
+        self._formulario = tk.Frame(cuerpo, bg=tema.FONDO)
+        self._formulario.pack(side="top", fill="x")
+
+        tk.Label(
+            cuerpo, text="VISTA PREVIA", bg=tema.FONDO, fg=tema.TEXTO_SUAVE, font=(FAMILIA, 8, "bold"), anchor="w"
+        ).pack(side="top", fill="x", pady=(12, 6))
+        marco = tk.Frame(cuerpo, bg=tema.EDITOR, highlightthickness=1, highlightbackground=tema.BORDE)
+        marco.pack(side="top", fill="both", expand=True)
+        self._vista = tk.Text(
+            marco, height=4, width=1, state="disabled", wrap="char", bg=tema.EDITOR, fg=tema.TEXTO,
+            font=tema.FUENTE_CODIGO[:1] + (10,), relief="flat", borderwidth=0, highlightthickness=0,
+            padx=10, pady=8, spacing1=1, spacing3=1, selectbackground=tema.SELECCION,
+        )
+        self._vista.pack(fill="both", expand=True)
+        for etiqueta, color in COLORES_RESALTADO.items():
+            self._vista.tag_configure("r_" + etiqueta, foreground=color)
 
     # ---------- formulario ----------
 
+    def _mover(self, paso: int) -> None:
+        ids = [b.id for b in cc.BLOQUES]
+        self._elegir(ids[(ids.index(self._bloque.id) + paso) % len(ids)])
+
     def _elegir(self, id_bloque: str) -> None:
         self._bloque = cc.POR_ID[id_bloque]
-        for k, item in self._items.items():
-            item.marcar(k == id_bloque)
+        self._selector.config(text=f"{self._bloque.titulo}  ▾")  # la flecha indica que se despliega
         self._titulo.config(text=self._bloque.titulo)
         self._descripcion.config(text=self._bloque.descripcion)
 
@@ -128,49 +117,53 @@ class ConstructorPistas(tk.Toplevel):
             hijo.destroy()
         self._variables.clear()
         self._textos.clear()
-        self._formulario.grid_columnconfigure(1, weight=1)
 
-        for fila, campo in enumerate(self._bloque.campos):
-            if campo.tipo != "casilla":
+        for campo in self._bloque.campos:
+            variable = None
+            if campo.tipo == "casilla":
+                variable = tk.BooleanVar(value=bool(campo.por_defecto))
+                ttk.Checkbutton(self._formulario, text=campo.etiqueta, variable=variable).pack(
+                    side="top", anchor="w", pady=(6, 2)
+                )
+            else:
                 tk.Label(
                     self._formulario, text=campo.etiqueta, bg=tema.FONDO, fg=tema.TEXTO, font=(FAMILIA, 9), anchor="w"
-                ).grid(row=fila, column=0, sticky="nw", padx=(0, 14), pady=5)
-
-            if campo.tipo == "opciones":
-                variable = tk.StringVar(value=str(campo.por_defecto))
-                ttk.Combobox(self._formulario, textvariable=variable, values=campo.opciones, state="readonly",
-                             width=24).grid(row=fila, column=1, sticky="w", pady=5)
-            elif campo.tipo == "casilla":
-                variable = tk.BooleanVar(value=bool(campo.por_defecto))
-                ttk.Checkbutton(self._formulario, text=campo.etiqueta, variable=variable).grid(
-                    row=fila, column=0, columnspan=2, sticky="w", pady=5
-                )
-            elif campo.multilinea:
-                variable = None
-                texto = tk.Text(
-                    self._formulario, height=3, width=40, bg=tema.EDITOR, fg=tema.TEXTO, insertbackground=tema.ACENTO,
-                    font=tema.FUENTE_CODIGO[:1] + (10,), relief="flat", highlightthickness=1,
-                    highlightbackground=tema.BORDE, highlightcolor=tema.ACENTO, padx=8, pady=6, wrap="none",
-                    selectbackground=tema.SELECCION,
-                )
-                texto.insert("1.0", str(campo.por_defecto))
-                texto.grid(row=fila, column=1, sticky="ew", pady=5)
-                texto.bind("<KeyRelease>", lambda e: self._actualizar())
-                self._textos[campo.clave] = texto
-            else:
-                variable = tk.StringVar(value=str(campo.por_defecto))
-                ttk.Entry(self._formulario, textvariable=variable).grid(row=fila, column=1, sticky="ew", pady=5)
+                ).pack(side="top", fill="x", pady=(6, 2))
+                if campo.tipo == "opciones":
+                    variable = tk.StringVar(value=str(campo.por_defecto))
+                    ttk.Combobox(self._formulario, textvariable=variable, values=campo.opciones, state="readonly").pack(
+                        side="top", fill="x"
+                    )
+                elif campo.multilinea:
+                    self._textos[campo.clave] = self._crear_texto_multilinea(campo)
+                else:
+                    variable = tk.StringVar(value=str(campo.por_defecto))
+                    ttk.Entry(self._formulario, textvariable=variable).pack(side="top", fill="x")
 
             if variable is not None:
                 self._variables[campo.clave] = variable
                 variable.trace_add("write", lambda *_: self._actualizar())
             if campo.ayuda:
-                tk.Label(
+                ayuda = tk.Label(
                     self._formulario, text=campo.ayuda, bg=tema.FONDO, fg=tema.TEXTO_APAGADO, font=(FAMILIA, 8),
-                    anchor="w",
-                ).grid(row=fila, column=2, sticky="w", padx=(10, 0))
+                    anchor="w", justify="left", wraplength=280,
+                )
+                ayuda.pack(side="top", fill="x", pady=(2, 0))
+                ayuda.bind("<Configure>", lambda e, a=ayuda: a.config(wraplength=max(120, e.width - 4)))
 
         self._actualizar()
+
+    def _crear_texto_multilinea(self, campo: cc.Campo) -> tk.Text:
+        texto = tk.Text(
+            self._formulario, height=2, width=1, bg=tema.EDITOR, fg=tema.TEXTO, insertbackground=tema.ACENTO,
+            font=tema.FUENTE_CODIGO[:1] + (10,), relief="flat", highlightthickness=1,
+            highlightbackground=tema.BORDE, highlightcolor=tema.ACENTO, padx=8, pady=6, wrap="none",
+            selectbackground=tema.SELECCION,
+        )
+        texto.insert("1.0", str(campo.por_defecto))
+        texto.pack(side="top", fill="x")
+        texto.bind("<KeyRelease>", lambda e: self._actualizar())
+        return texto
 
     def _valores(self) -> dict:
         valores = {clave: var.get() for clave, var in self._variables.items()}
@@ -203,7 +196,9 @@ class ConstructorPistas(tk.Toplevel):
 
     def _insertar(self) -> None:
         if not self._valido:
-            self._estado.config(text="●  Corrige el formulario antes de insertar: " + self._estado.cget("text")[3:], fg=tema.ERROR)
+            self._estado.config(
+                text="●  Corrige el formulario antes de insertar: " + self._estado.cget("text")[3:], fg=tema.ERROR
+            )
             return
         if self._al_insertar(self.codigo()):
             self._parpadear(self._boton_insertar, "¡Insertado!")
@@ -217,16 +212,3 @@ class ConstructorPistas(tk.Toplevel):
         original = (widget.cget("text"), widget.cget("fg"))
         widget.config(text=mensaje, **({"fg": color} if color else {}))
         self.after(1300, lambda: widget.winfo_exists() and widget.config(text=original[0], fg=original[1]))
-
-
-def abrir(master, al_insertar) -> ConstructorPistas:
-    """Abre el constructor (o trae al frente el que ya estaba abierto)."""
-    existente = getattr(master, "_constructor_pistas", None)
-    if existente is not None and existente.winfo_exists():
-        existente.deiconify()
-        existente.lift()
-        existente.focus_set()
-        return existente
-    ventana = ConstructorPistas(master, al_insertar)
-    master._constructor_pistas = ventana
-    return ventana

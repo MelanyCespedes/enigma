@@ -4,19 +4,21 @@ import sys
 import tkinter as tk
 from tkinter import filedialog, ttk
 
-from gui import ajustes, constructor_pistas, dialogos, recursos, tema
+from gui import ajustes, dialogos, recursos, tema
 from gui.cabecera import Cabecera
 from gui.editor_widget import EditorCodigo
 from gui.file_tree import ArbolArchivos
 from gui.guia_contenido import SECCIONES
 from gui.herramientas import PanelHerramientas
 from gui.output_panel import PanelSalida
-from gui.panel_derecho import DETECTIVE, PanelDerecho
+from gui.panel_derecho import CONSTRUCTOR, DETECTIVE, PanelDerecho
 from gui.tema import CABECERA, SELECCION_SUAVE, TEXTO, aplicar_tema, oscurecer_barra_titulo
 
 ANCHO_IZQUIERDA = 222
 ANCHO_RAPIDA = 260
 ANCHO_DETECTIVE = 420
+ANCHO_CONSTRUCTOR = 360
+ANCHOS = {DETECTIVE: ANCHO_DETECTIVE, CONSTRUCTOR: ANCHO_CONSTRUCTOR}
 
 
 class VentanaPrincipal(tk.Tk):
@@ -104,7 +106,7 @@ class VentanaPrincipal(tk.Tk):
             horizontal,
             al_insertar=self.insertar_desde_guia,
             al_ocultar=self.ocultar_derecha,
-            al_constructor=self.abrir_constructor,
+            al_insertar_en_editor=self.editor.insertar_texto,
             al_cambiar_vista=self._vista_cambiada,
         )
         self.derecha.configure(width=ANCHO_RAPIDA, height=100)
@@ -177,7 +179,7 @@ class VentanaPrincipal(tk.Tk):
         try:
             self._contenedor.sashpos(0, ANCHO_IZQUIERDA)
             if self._derecha_visible:
-                ancho = ANCHO_DETECTIVE if self.derecha.vista == DETECTIVE else ANCHO_RAPIDA
+                ancho = ANCHOS.get(self.derecha.vista, ANCHO_RAPIDA)
                 self._contenedor.sashpos(1, total - ancho)
         except tk.TclError:
             pass
@@ -218,7 +220,9 @@ class VentanaPrincipal(tk.Tk):
             self.mostrar_guia()
 
     def abrir_constructor(self) -> None:
-        constructor_pistas.abrir(self, self.editor.insertar_texto)
+        """Muestra el Constructor de pistas en la columna derecha."""
+        self.mostrar_derecha()
+        self.derecha.mostrar_constructor()
 
     def insertar_desde_guia(self, texto: str, nombre: str = "codigo_enigma") -> bool:
         """Crea un archivo nuevo con el contenido seleccionado en la Guia."""

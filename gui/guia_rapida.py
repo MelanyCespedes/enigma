@@ -65,17 +65,22 @@ class GuiaRapida(tk.Frame):
         fila = tk.Frame(tarjeta, bg=tema.SELECCION)
         fila.pack(side="top", fill="x", padx=14, pady=(12, 2))
         tk.Label(fila, image=recursos.icono("bombilla", master=self), bg=tema.SELECCION).pack(side="left")
-        tk.Label(
+        titulo = tk.Label(
             fila, text="Primero recibe un indicio", bg=tema.SELECCION, fg=tema.TEXTO_FUERTE,
-            font=(FAMILIA, 10, "bold"),
-        ).pack(side="left", padx=(10, 0))
+            font=(FAMILIA, 10, "bold"), anchor="w", justify="left", wraplength=140,
+        )
+        titulo.pack(side="left", padx=(10, 0))
 
         self._indicio = tk.Label(
             tarjeta, text=TEXTO_INDICIO_INICIAL, bg=tema.SELECCION, fg="#e6dcf2", font=(FAMILIA, 9),
             justify="left", anchor="nw", wraplength=200,
         )
         self._indicio.pack(side="top", fill="x", padx=(44, 14), pady=(0, 14))
-        tarjeta.bind("<Configure>", lambda e: self._indicio.config(wraplength=max(120, e.width - 70)))
+        def ajustar(e):
+            self._indicio.config(wraplength=max(120, e.width - 70))
+            titulo.config(wraplength=max(80, e.width - 80))  # el titulo baja de linea en vez de cortarse
+
+        tarjeta.bind("<Configure>", ajustar)
 
     def mostrar_indicio(self, texto: str | None) -> None:
         """Muestra el indicio del ultimo error (o el consejo inicial si ya no hay error)."""
@@ -124,7 +129,8 @@ class GuiaRapida(tk.Frame):
         textos = tk.Frame(tarjeta, bg=tema.TARJETA)
         textos.pack(side="left", fill="x", expand=True)
         titulo = tk.Label(
-            textos, text="Constructor de bloques", bg=tema.TARJETA, fg="#d9a8f0", font=(FAMILIA, 10, "bold"), anchor="w"
+            textos, text="Constructor de bloques", bg=tema.TARJETA, fg="#d9a8f0", font=(FAMILIA, 10, "bold"),
+            anchor="w", justify="left", wraplength=140,
         )
         titulo.pack(fill="x")
         subtitulo = tk.Label(
@@ -132,7 +138,11 @@ class GuiaRapida(tk.Frame):
             font=(FAMILIA, 8), anchor="w", justify="left", wraplength=140,
         )
         subtitulo.pack(fill="x")
-        textos.bind("<Configure>", lambda e: subtitulo.config(wraplength=max(80, e.width - 4)))
+        def ajustar_textos(e):
+            subtitulo.config(wraplength=max(80, e.width - 4))
+            titulo.config(wraplength=max(80, e.width - 4))
+
+        textos.bind("<Configure>", ajustar_textos)
         flecha = tk.Label(tarjeta, image=recursos.icono("chevron_der_claro", master=self), bg=tema.TARJETA)
         flecha.pack(side="right", padx=(0, 8))
 

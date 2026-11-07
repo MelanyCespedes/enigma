@@ -9,6 +9,7 @@ y estado de cada prueba. Termina con codigo 1 si alguna prueba no da lo esperado
 from __future__ import annotations
 
 import os
+import re
 import sys
 
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -37,11 +38,16 @@ def _describir_esperado(caso: Caso) -> str:
     return f"`{caso.error}` en `{caso.archivo}`, línea {caso.linea}: «{caso.fragmento}»"
 
 
+def _sin_ruta_local(texto: str) -> str:
+    """Deja las rutas relativas al proyecto: el informe no debe mostrar carpetas del equipo de quien lo genera."""
+    return re.sub(r"[A-Za-z]:[\\/][^']*?tests[\\/]programas_prueba[\\/]", lambda _: "tests/programas_prueba/", texto)
+
+
 def _describir_obtenido(resultado: Resultado) -> str:
     if resultado.exito:
         return "Compila y se ejecuta. Imprime:<br>" + "<br>".join(f"`{l}`" for l in resultado.salida)
     return (f"`{resultado.error}` ({resultado.etapa}) en `{resultado.archivo}`, línea {resultado.linea}: "
-            f"{resultado.descripcion}")
+            f"{_sin_ruta_local(resultado.descripcion)}")
 
 
 def _coincide(caso: Caso, resultado: Resultado) -> bool:

@@ -66,7 +66,7 @@ def tokenizar(codigo_fuente: str, nombre_archivo: str)-> list[Token]:
                 tipo="Cierre de comentario sin apertura",
                 archivo=nombre_archivo,
                 linea=linea,
-                indicio="Hay una llave de cierre '}' que no corresponde a ningun comentario.",
+                indicio="Hay un cierre de comentario que no tiene su apertura.",
                 descripcion="Se encontro '}' sin un '{' que abra un comentario antes.",
                 causa_posible="Revisa si te falto la llave de apertura '{' o si sobra esta '}'.",
             )
@@ -206,7 +206,7 @@ def tokenizar(codigo_fuente: str, nombre_archivo: str)-> list[Token]:
                     tipo="Importacion mal formada.",
                     archivo=nombre_archivo,
                     linea=linea,
-                    indicio="Despues de '#' se esperaba la palabra 'expediente'.",
+                    indicio="Parece que una importación está mal escrita.",
                     descripcion=f"Se encontró '{palabra}' en lugar de 'expediente' despues de '#'.",
                     causa_posible="Revisa que la directiva de importacion tenga la forma #expediente <archivo.eng>.",
                 )
@@ -222,7 +222,7 @@ def tokenizar(codigo_fuente: str, nombre_archivo: str)-> list[Token]:
                     tipo="Importacion mal formada.",
                     archivo=nombre_archivo,
                     linea=linea,
-                    indicio="Se esperaba '<' despues de 'expediente'.",
+                    indicio="Parece que una importación está mal escrita.",
                     descripcion="La directiva de importación debe tener forma #expediente <archivo.eng>.",
                     causa_posible="Revisa que no te falte el '<' antes del nombre del archivo.",
                 )

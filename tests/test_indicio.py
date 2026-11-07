@@ -94,3 +94,48 @@ def test_los_indicios_de_simbolo_faltante_no_nombran_simbolos_ni_lineas():
     for indicio in [*INDICIOS_POR_TOKEN_FALTANTE.values(), INDICIO_FALTA_ALGO]:
         assert es_orientadora(indicio), indicio
         assert "!" not in indicio and not any(c.isdigit() for c in indicio), indicio
+
+
+# ---------- ningun indicio revela nombres ni valores del programa ----------
+
+
+def test_ningun_indicio_del_compilador_incluye_nombres_ni_valores():
+    """Recorre core/ y comprueba que ningun 'indicio=' sea un f-string: un f-string interpola nombres,
+    tipos, operadores o cantidades del programa, y eso es parte de la explicacion completa, no del indicio."""
+    import ast
+    import glob
+    import os
+
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    interpolados = []
+    revisados = 0
+    for ruta in glob.glob(os.path.join(raiz, "core", "*.py")):
+        arbol = ast.parse(open(ruta, encoding="utf-8").read())
+        for nodo in ast.walk(arbol):
+            if isinstance(nodo, ast.Call):
+                for kw in nodo.keywords:
+                    if kw.arg == "indicio":
+                        revisados += 1
+                        if isinstance(kw.value, ast.JoinedStr):
+                            interpolados.append(f"{os.path.basename(ruta)}:{nodo.lineno}")
+    assert revisados > 50  # el recorrido encontro los indicios (hay mas de 50 en core/)
+    assert not interpolados, f"indicios con nombres o valores del programa: {interpolados}"
+
+
+def test_una_constante_en_mayusculas_no_hace_que_se_pierda_el_indicio():
+    """Antes, un nombre como MAX se tomaba por un nombre interno y el indicio se cambiaba por una frase al azar."""
+    from core.ast_nodes import Asignacion, CasoPrincipal, DeclaracionPista, Literal, Programa
+    from core.errors import ErrorSemantico
+    from core.semantic import analizar
+
+    programa = Programa(
+        importaciones=[],
+        declaraciones_globales=[DeclaracionPista("MAX", Literal("entero", 3), True, 1)],
+        funciones={},
+        caso_principal=CasoPrincipal("P", [Asignacion("MAX", Literal("entero", 4), 3)], 1),
+        archivo_origen="p.eng",
+    )
+    with pytest.raises(ErrorSemantico) as info:
+        analizar(programa)
+    elegidos = {elegir_indicio(info.value.indicio, "ErrorSemantico") for _ in range(30)}
+    assert elegidos == {"Parece que intentas cambiar algo que debía quedar fijo."}

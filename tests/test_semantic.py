@@ -60,7 +60,8 @@ def test_variable_no_declarada_lanza_error():
         analizar(programa(cuerpo))
 
     assert info.value.linea == 5
-    assert "y" in info.value.indicio
+    assert "'y'" in info.value.descripcion        # el nombre sale en la explicacion completa...
+    assert "'y'" not in info.value.indicio        # ...pero no en el indicio
 
 
 def test_reasignar_hecho_lanza_error():
@@ -70,7 +71,8 @@ def test_reasignar_hecho_lanza_error():
     with pytest.raises(ErrorSemantico) as info:
         analizar(programa(cuerpo, globales=globales))
 
-    assert "hecho" in info.value.indicio
+    assert "hecho" in info.value.descripcion
+    assert "MAX" not in info.value.indicio
 
 
 def test_asignar_expresion_a_entero_lanza_error():
@@ -142,7 +144,8 @@ def test_escena_sin_concluir_lanza_error():
         analizar(programa([], funciones={"Vacia": escena}))
 
     assert info.value.linea == 2
-    assert "Vacia" in info.value.indicio and "concluir" in info.value.indicio
+    assert "Vacia" in info.value.descripcion and "concluir" in info.value.descripcion
+    assert "Vacia" not in info.value.indicio
 
 
 def test_escena_con_concluir_dentro_de_un_condicional_es_valida():
@@ -259,3 +262,36 @@ def test_el_texto_si_se_puede_comparar_por_igualdad():
         "    evaluar si (a <> 'b') inicio\n        revelar(2)!\n    fin!\n"
         "caso P cerrado!\n"
     )
+
+
+# ---------- lo que el indicio ya no dice debe estar en la explicacion completa ----------
+
+_ENCABEZADO_FUNCIONES = (
+    "escena Doble(n: entero)::entero inicio\n    concluir n!\nfin!\n"
+    "proceso Hablar() inicio\n    revelar('hola')!\nfin!\n"
+)
+
+
+@pytest.mark.parametrize("cuerpo,esperado", [
+    ("revelar(resolver Doble(1, 2))!", ["Doble", "espera 1", "enviaron 2"]),                     # argumentos de mas
+    ("revelar(resolver Doble('texto'))!", ["parámetro 'n'", "'entero'", "'expresion'"]),          # tipo de argumento
+    ("pista x = resolver Hablar()!", ["Hablar", "proceso"]),                                      # proceso como valor
+    ("pista a = conectar('hola', 1)!", ["'conectar'", "'expresion'"]),                            # operar con texto
+    ("pista lista = pistas entero[1, 2]!\n    lista[0] = 'texto'!", ["'lista'", "'entero'", "'expresion'"]),
+])
+def test_la_explicacion_completa_conserva_los_nombres_que_el_indicio_no_dice(cuerpo, esperado):
+    codigo = f"{_ENCABEZADO_FUNCIONES}caso Prueba abierto\n    {cuerpo}\ncaso Prueba cerrado!"
+    with pytest.raises(ErrorSemantico) as info:
+        _analizar_codigo(codigo)
+    for dato in esperado:
+        assert dato in info.value.descripcion, (dato, info.value.descripcion)
+        assert dato not in info.value.indicio, (dato, info.value.indicio)
+
+
+def test_operacion_con_operandos_de_mas_dice_cual_en_la_explicacion_completa():
+    # el parser ya limita 'repartir' a dos valores; este error solo se alcanza armando el arbol a mano
+    operacion = OperacionAritmetica("repartir", [entero(1), entero(2), entero(3)], linea=2)
+    with pytest.raises(ErrorSemantico) as info:
+        analizar(programa([Revelar(argumentos=[operacion], linea=2)]))
+    assert "'repartir'" in info.value.descripcion and "enviaron 3" in info.value.descripcion
+    assert "repartir" not in info.value.indicio

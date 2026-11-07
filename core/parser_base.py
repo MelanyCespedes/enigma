@@ -75,7 +75,7 @@ class _ParserBase:
                 tipo="Palabra reservada",
                 archivo=self.nombre_archivo,
                 linea=linea,
-                indicio=f"'{encontrado.lexema}' es una palabra reservada del lenguaje.",
+                indicio="Parece que usaste una palabra reservada como nombre.",
                 descripcion=f"Se esperaba un nombre pero se encontró la palabra reservada '{encontrado.lexema}'.",
                 causa_posible=f"'{encontrado.lexema}' ya tiene un significado en Enigma y no puede usarse como "
                               "nombre de pista, parámetro o función. Elige otro nombre.",
@@ -104,9 +104,9 @@ class _ParserBase:
                 tipo="Tipo invalido",
                 archivo=self.nombre_archivo,
                 linea=token.linea,
-                indicio="Se esperaba un tipo (entero, decimal, expresion, declaracion, pistas o tablero).",
+                indicio="Parece que falta el tipo de algo que estás declarando.",
                 descripcion=(
-                    f"Se esperaba un tipo pero se encontro {token.tipo.name} "
+                    f"Se esperaba un tipo (entero, decimal, expresion, declaracion, pistas o tablero) pero se encontro {token.tipo.name} "
                     f"('{token.lexema}')."
                 ),
                 causa_posible="Revisa que el tipo sea uno de los tipos validos del lenguaje.",

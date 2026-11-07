@@ -35,7 +35,7 @@ class _Parser(_ParserBase, _SentenciasMixin, _ExpresionesMixin, _ControlMixin, _
                     tipo="Funcion duplicada",
                     archivo=self.nombre_archivo,
                     linea=funcion.linea,
-                    indicio=f"Ya existe una funcion llamada '{funcion.nombre}' en este archivo.",
+                    indicio="Parece que dos funciones tienen el mismo nombre.",
                     descripcion=f"La funcion '{funcion.nombre}' esta declarada mas de una vez en {self.nombre_archivo}.",
                     causa_posible="Revisa que no hayas repetido el nombre de una escena/proceso.",
                 )

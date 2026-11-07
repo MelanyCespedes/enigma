@@ -244,7 +244,7 @@ class Interprete:
         if expr.operador == "repartir":
             if valores[1] == 0:
                 raise self._error_ejecucion(
-                    indicio="No se puede repartir entre cero.",
+                    indicio="Parece que una división no se puede calcular con esos valores.",
                     descripcion=f"repartir({valores[0]}, {valores[1]}) es indefinido.",
                     causa="El segundo valor de una división es cero.",
                 )
@@ -319,16 +319,16 @@ class Interprete:
             except _SenalRetorno as retorno:
                 if isinstance(funcion, Proceso):
                     raise self._error_ejecucion(
-                        indicio=f"'{llamada.nombre}' no debería devolver un valor.",
-                        descripcion="Un proceso no puede usar 'concluir'.",
+                        indicio="Parece que un proceso está devolviendo un valor.",
+                        descripcion=f"'{llamada.nombre}' es un proceso y un proceso no puede usar 'concluir'.",
                         causa="Error interno: el semántico debió detectar esto antes.",
                     )
                 return retorno.valor
 
             if isinstance(funcion, Escena):
                 raise self._error_ejecucion(
-                    indicio=f"'{llamada.nombre}' terminó sin 'concluir'.",
-                    descripcion="La escena debía devolver un valor y no lo hizo.",
+                    indicio="Parece que una escena terminó sin entregar un valor.",
+                    descripcion=f"La escena '{llamada.nombre}' debía devolver un valor y terminó sin 'concluir'.",
                     causa="Falta un 'concluir' en algún camino de ejecución.",
                 )
             return None
@@ -358,7 +358,7 @@ class Interprete:
             if texto == "NoCulpable":
                 return False
             raise self._error_ejecucion(
-                indicio=f"'{nombre}' solo acepta culpable o NoCulpable.",
+                indicio="Parece que escribiste un dato que no es del tipo esperado.",
                 descripcion=f"Se escribió '{texto}', pero '{nombre}' es una declaracion (booleano).",
                 causa="Escribe exactamente culpable o NoCulpable.",
             )
@@ -367,7 +367,7 @@ class Interprete:
                 return int(texto)
             except ValueError:
                 raise self._error_ejecucion(
-                    indicio=f"'{nombre}' espera un número entero.",
+                    indicio="Parece que escribiste un dato que no es del tipo esperado.",
                     descripcion=f"Se escribió '{texto}', pero '{nombre}' es un entero.",
                     causa="Escribe un número sin decimales, por ejemplo 25.",
                 ) from None
@@ -376,7 +376,7 @@ class Interprete:
                 return float(texto)
             except ValueError:
                 raise self._error_ejecucion(
-                    indicio=f"'{nombre}' espera un número decimal.",
+                    indicio="Parece que escribiste un dato que no es del tipo esperado.",
                     descripcion=f"Se escribió '{texto}', pero '{nombre}' es un decimal.",
                     causa="Escribe un número, por ejemplo 15.5.",
                 ) from None

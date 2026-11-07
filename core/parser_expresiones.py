@@ -146,7 +146,7 @@ class _ExpresionesMixin:
             tipo="Expresion invalida",
             archivo=self.nombre_archivo,
             linea=token.linea,
-            indicio="Se esperaba un valor o identificador en este punto.",
+            indicio="Parece que falta un valor en alguna expresión.",
             descripcion=(
                 f"Se esperaba una expresion pero se encontro {token.tipo.name} "
                 f"('{token.lexema}')."
@@ -184,7 +184,7 @@ class _ExpresionesMixin:
                 tipo="Valor literal invalido",
                 archivo=self.nombre_archivo,
                 linea=token_valor.linea,
-                indicio="El valor dentro de 'valor: ...' no es un literal reconocido.",
+                indicio="Parece que un valor escrito dentro de un tipo no es válido.",
                 descripcion=(
                     f"Se esperaba un valor literal despues de 'valor:' pero se "
                     f"encontro {token_valor.tipo.name} ('{token_valor.lexema}')."

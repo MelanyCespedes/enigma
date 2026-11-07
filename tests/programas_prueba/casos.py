@@ -90,7 +90,7 @@ CASOS: tuple[Caso, ...] = (
          error="ErrorDeImportacion", archivo="principal.eng", linea=2, fragmento="herramientas.eng"),
     Caso("I2", IMPORTACION, "Detectar una llamada a una función importada con la cantidad de argumentos incorrecta.",
          "importacion/I2_argumentos_incorrectos/principal.eng",
-         error="ErrorSemantico", archivo="principal.eng", linea=5, fragmento="3 argumento"),
+         error="ErrorSemantico", archivo="principal.eng", linea=5, fragmento="se enviaron 3"),
     Caso("I3", IMPORTACION, "Detectar un error dentro de un archivo importado e indicar el archivo donde ocurre.",
          "importacion/I3_error_en_importado/principal.eng",
          error="ErrorSemantico", archivo="calculos.eng", linea=2, fragmento="factor"),

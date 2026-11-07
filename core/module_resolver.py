@@ -61,7 +61,7 @@ def _resolver(
                 tipo="importacion",
                 archivo=programa.archivo_origen,
                 linea=importacion.linea,
-                indicio=f"No se encontró el archivo '{importacion.archivo}'.",
+                indicio="Parece que un archivo que importas no está donde se esperaba.",
                 descripcion=f"El archivo '{importacion.archivo}' no existe en '{directorio}'.",
                 causa_posible="Revisa el nombre del archivo o su ubicación (se busca junto al archivo que lo importa).",
             )
@@ -108,7 +108,7 @@ def _fusionar_funciones(programa: Programa, importado: Programa, importacion) ->
                 tipo="importacion",
                 archivo=programa.archivo_origen,
                 linea=importacion.linea,
-                indicio=f"La función '{nombre}' ya existe.",
+                indicio="Parece que dos archivos definen una función con el mismo nombre.",
                 descripcion=(
                     f"'{nombre}' está declarada tanto en '{existente.archivo or programa.archivo_origen}' "
                     f"como en el archivo importado '{funcion.archivo or importacion.archivo}'."

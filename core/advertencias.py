@@ -46,8 +46,8 @@ class Advertencia:
         return (
             "Advertencia\n"
             f"Archivo: {self.archivo}\n"
-            f"Linea: {self.linea}\n"
-            f"Descripcion: {self.descripcion}\n"
+            f"Línea: {self.linea}\n"
+            f"Descripción: {self.descripcion}\n"
             f"Posible causa: {self.causa_posible}"
         )
 

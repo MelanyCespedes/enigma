@@ -46,7 +46,7 @@ class _SentenciasMixin:
                 f"No se esperaba el token {self._actual().tipo.name} "
                 f"('{self._actual().lexema}') al inicio de una sentencia."
             ),
-            causa_posible="Revisa que la instruccion sea una de las soportadas en este punto.",
+            causa_posible="Revisa que la instrucción sea una de las soportadas en este punto.",
         )
 
     def _parsear_declaracion_pista(self) -> DeclaracionPista:

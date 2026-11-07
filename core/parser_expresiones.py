@@ -143,15 +143,15 @@ class _ExpresionesMixin:
             return self._parsear_llamada_resolver()
 
         raise ErrorSintactico(
-            tipo="Expresion invalida",
+            tipo="Expresión inválida",
             archivo=self.nombre_archivo,
             linea=token.linea,
             indicio="Parece que falta un valor en alguna expresión.",
             descripcion=(
-                f"Se esperaba una expresion pero se encontro {token.tipo.name} "
+                f"Se esperaba una expresión pero se encontró {token.tipo.name} "
                 f"('{token.lexema}')."
             ),
-            causa_posible="Revisa que no falte un valor, identificador o que sobre un simbolo.",
+            causa_posible="Revisa que no falte un valor, identificador o que sobre un símbolo.",
         )
 
     def _parsear_constructor_tipo(self) -> Literal:
@@ -181,13 +181,13 @@ class _ExpresionesMixin:
             literal = Literal(tipo=nombre_tipo, valor=token_valor.valor)
         else:
             raise ErrorSintactico(
-                tipo="Valor literal invalido",
+                tipo="Valor literal inválido",
                 archivo=self.nombre_archivo,
                 linea=token_valor.linea,
                 indicio="Parece que un valor escrito dentro de un tipo no es válido.",
                 descripcion=(
-                    f"Se esperaba un valor literal despues de 'valor:' pero se "
-                    f"encontro {token_valor.tipo.name} ('{token_valor.lexema}')."
+                    f"Se esperaba un valor literal después de 'valor:' pero se "
+                    f"encontró {token_valor.tipo.name} ('{token_valor.lexema}')."
                 ),
                 causa_posible="Revisa el valor dentro del constructor de tipo.",
             )

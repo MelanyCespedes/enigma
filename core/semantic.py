@@ -142,7 +142,7 @@ class AnalizadorSemantico:
         if simbolo.es_constante:
             raise self._error(
                 indicio="Parece que intentas cambiar algo que debía quedar fijo.",
-                descripcion=f"'{asig.nombre}' fue declarada con 'hecho' en la linea {simbolo.linea}.",
+                descripcion=f"'{asig.nombre}' fue declarada con 'hecho' en la línea {simbolo.linea}.",
                 causa="Se intentó reasignar una constante.",
             )
 
@@ -160,7 +160,7 @@ class AnalizadorSemantico:
         if simbolo.es_constante:
             raise self._error(
                 indicio="Parece que intentas cambiar algo que debía quedar fijo.",
-                descripcion=f"'{asig.nombre}' fue declarada con 'hecho' en la linea {simbolo.linea}.",
+                descripcion=f"'{asig.nombre}' fue declarada con 'hecho' en la línea {simbolo.linea}.",
                 causa="Se intentó modificar una celda de una constante.",
             )
 
@@ -471,7 +471,7 @@ class AnalizadorSemantico:
 
     def _error(self, indicio: str, descripcion: str, causa: str) -> ErrorSemantico:
         return ErrorSemantico(
-            tipo="semantica",
+            tipo="semántica",
             archivo=self.archivo,
             linea=self._linea_actual,
             indicio=indicio,

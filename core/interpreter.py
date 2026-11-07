@@ -400,7 +400,7 @@ class Interprete:
 
     def _error_ejecucion(self, indicio: str, descripcion: str, causa: str) -> ErrorDeEjecucion:
         return ErrorDeEjecucion(
-            tipo="ejecucion",
+            tipo="ejecución",
             archivo=self.archivo,
             linea=self._linea_actual,
             indicio=indicio,

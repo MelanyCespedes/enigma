@@ -24,7 +24,7 @@ CARPETA = os.path.dirname(os.path.abspath(__file__))
 class Resultado:
     exito: bool
     salida: list[str]              # lineas que imprimio el programa
-    etapa: str = ""                # compilacion | ejecucion (solo si hubo error)
+    etapa: str = ""                # compilación | ejecución (solo si hubo error)
     error: str = ""                # nombre de la clase del error
     archivo: str = ""
     linea: int = 0
@@ -36,7 +36,7 @@ def correr(ruta_relativa: str, entradas: tuple[str, ...] = ()) -> Resultado:
     ruta = os.path.join(CARPETA, *ruta_relativa.split("/"))
     nombre = os.path.basename(ruta)
     pendientes = list(entradas)
-    etapa = "compilacion"
+    etapa = "compilación"
     salida = io.StringIO()
     entrada_original = builtins.input
 
@@ -49,7 +49,7 @@ def correr(ruta_relativa: str, entradas: tuple[str, ...] = ()) -> Resultado:
         programa = parsear(tokenizar(codigo, nombre), nombre)
         resolver_importaciones(programa, os.path.dirname(ruta))
         analizar(programa)
-        etapa = "ejecucion"
+        etapa = "ejecución"
         builtins.input = leer
         with contextlib.redirect_stdout(salida):
             ejecutar(programa)

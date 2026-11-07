@@ -141,8 +141,8 @@ def test_formato_igual_al_de_los_errores():
     lineas = texto.splitlines()
     assert lineas[0] == "Advertencia"
     assert lineas[1] == "Archivo: prueba.eng"
-    assert lineas[2] == "Linea: 3"
-    assert lineas[3].startswith("Descripcion: ")
+    assert lineas[2] == "Línea: 3"
+    assert lineas[3].startswith("Descripción: ")
     assert lineas[4].startswith("Posible causa: ")
 
 

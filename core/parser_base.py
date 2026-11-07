@@ -101,14 +101,14 @@ class _ParserBase:
         token = self._actual()
         if token.tipo not in TOKENS_TIPO:
             raise ErrorSintactico(
-                tipo="Tipo invalido",
+                tipo="Tipo inválido",
                 archivo=self.nombre_archivo,
                 linea=token.linea,
                 indicio="Parece que falta el tipo de algo que estás declarando.",
                 descripcion=(
-                    f"Se esperaba un tipo (entero, decimal, expresion, declaracion, pistas o tablero) pero se encontro {token.tipo.name} "
+                    f"Se esperaba un tipo (entero, decimal, expresion, declaracion, pistas o tablero) pero se encontró {token.tipo.name} "
                     f"('{token.lexema}')."
                 ),
-                causa_posible="Revisa que el tipo sea uno de los tipos validos del lenguaje.",
+                causa_posible="Revisa que el tipo sea uno de los tipos válidos del lenguaje.",
             )
         return self._avanzar()

@@ -58,7 +58,7 @@ def _resolver(
 
         if not os.path.isfile(ruta):
             raise ErrorDeImportacion(
-                tipo="importacion",
+                tipo="importación",
                 archivo=programa.archivo_origen,
                 linea=importacion.linea,
                 indicio="Parece que un archivo que importas no está donde se esperaba.",
@@ -69,7 +69,7 @@ def _resolver(
         if _clave(ruta) in pila_rutas:
             cadena = " -> ".join(pila_nombres + [nombre])
             raise ErrorDeImportacion(
-                tipo="importacion circular",
+                tipo="importación circular",
                 archivo=programa.archivo_origen,
                 linea=importacion.linea,
                 indicio="Hay una importación circular entre archivos.",
@@ -105,7 +105,7 @@ def _fusionar_funciones(programa: Programa, importado: Programa, importacion) ->
             continue  # la misma funcion llegada por otro camino (diamante)
         if existente is not None:
             raise ErrorDeImportacion(
-                tipo="importacion",
+                tipo="importación",
                 archivo=programa.archivo_origen,
                 linea=importacion.linea,
                 indicio="Parece que dos archivos definen una función con el mismo nombre.",

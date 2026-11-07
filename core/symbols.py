@@ -48,15 +48,15 @@ class TablaSimbolos:
         if nombre in ambito:
             previo = ambito[nombre]
             raise ErrorSemantico(
-                tipo="semantica",
+                tipo="semántica",
                 archivo=self.archivo,
                 linea=linea,
-                pista=f"La pista '{nombre}' ya tiene dueno en este bloque.",
+                indicio="Parece que declaraste dos veces algo con el mismo nombre.",
                 descripcion=(
-                    f"'{nombre}' ya fue declarada en la linea {previo.linea} "
-                    f"dentro del ambito '{self.ambito_actual}'."
+                    f"'{nombre}' ya fue declarada en la línea {previo.linea} "
+                    f"dentro del ámbito '{self.ambito_actual}'."
                 ),
-                causa_posible="Se declaro dos veces la misma variable o funcion en el mismo bloque.",
+                causa_posible="Se declaró dos veces la misma variable o función en el mismo bloque.",
             )
 
         simbolo = Simbolo(

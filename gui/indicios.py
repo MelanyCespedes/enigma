@@ -1,17 +1,17 @@
-"""Pistas para el estudiante: orientan sin revelar donde esta el error (sin tkinter)."""
+"""Indicios para el estudiante: orientan sin revelar donde esta el error (sin tkinter)."""
 from __future__ import annotations
 
 import random
 import re
 
-# Pistas de respaldo, por tipo de error (se usan si la pista propia del error delata el lugar).
-PISTAS_GENERICAS = {
+# Indicios de respaldo, por tipo de error (se usan si el indicio propio del error delata el lugar).
+INDICIOS_GENERICOS = {
     "ErrorLexico": [
         "Hay un símbolo en tu código que Enigma no reconoce.",
         "Puede que haya un símbolo de más, o que te falte alguno.",
     ],
     "ErrorSintactico": [
-        "Puede que te falte un '!' al final de alguna instrucción.",
+        "Puede que te falte algo al final de alguna instrucción.",
         "Revisa que cada bloque que abriste también lo hayas cerrado.",
         "Algo en el orden de tu código no es el que Enigma espera.",
     ],
@@ -30,22 +30,22 @@ PISTAS_GENERICAS = {
         "Revisa los valores que le estás dando a tus operaciones.",
     ],
 }
-PISTA_POR_DEFECTO = "Hay algo que no cuadra en tu código. Revísalo con calma."
+INDICIO_POR_DEFECTO = "Hay algo que no cuadra en tu código. Revísalo con calma."
 
-# Una pista no debe delatar donde esta el error ni usar nombres internos del compilador.
+# Un indicio no debe delatar donde esta el error ni usar nombres internos del compilador.
 _DELATA_LINEA = re.compile(r"l[ií]nea\s+\d+", re.IGNORECASE)
 _NOMBRE_INTERNO = re.compile(r"\b[A-Z][A-Z_]{2,}\b")  # SELLO, FIN_DE_ARCHIVO, CASO...
 
 
-def es_orientadora(pista: str | None) -> bool:
-    """True si la pista sirve tal cual: no menciona una linea ni un nombre interno."""
-    pista = (pista or "").strip()
-    return bool(pista) and not _DELATA_LINEA.search(pista) and not _NOMBRE_INTERNO.search(pista)
+def es_orientadora(indicio: str | None) -> bool:
+    """True si el indicio sirve tal cual: no menciona una linea ni un nombre interno."""
+    indicio = (indicio or "").strip()
+    return bool(indicio) and not _DELATA_LINEA.search(indicio) and not _NOMBRE_INTERNO.search(indicio)
 
 
-def elegir_pista(pista_propia: str | None, tipo_de_error: str) -> str:
-    """La pista que se le muestra al estudiante primero: la propia del error si orienta
-    sin delatar el lugar; si no, una pista general del tipo de error."""
-    if es_orientadora(pista_propia):
-        return pista_propia.strip()
-    return random.choice(PISTAS_GENERICAS.get(tipo_de_error, [PISTA_POR_DEFECTO]))
+def elegir_indicio(indicio_propio: str | None, tipo_de_error: str) -> str:
+    """El indicio que se le muestra al estudiante primero: el propio del error si orienta
+    sin delatar el lugar; si no, uno general del tipo de error."""
+    if es_orientadora(indicio_propio):
+        return indicio_propio.strip()
+    return random.choice(INDICIOS_GENERICOS.get(tipo_de_error, [INDICIO_POR_DEFECTO]))

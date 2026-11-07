@@ -1,0 +1,6 @@
+{ I1: importar un archivo que no existe }
+#expediente <herramientas.eng>
+
+caso A abierto
+    revelar('no deberia llegar aqui')!
+caso A cerrado!

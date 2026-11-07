@@ -183,7 +183,9 @@ class EditorCodigo(ttk.Frame):
         if pestana is None:
             dialogos.mostrar_aviso(self, "Abre o crea un archivo para poder insertar el código.")
             return False
-        pestana.texto.insert("insert", texto + "\n")
+        # Si el cursor esta despues de otra instruccion, el bloque empieza en su propia linea.
+        pegado = bool(pestana.texto.get("insert linestart", "insert").strip())
+        pestana.texto.insert("insert", ("\n" if pegado else "") + texto + "\n")
         pestana.texto.focus_set()
         pestana.texto.see("insert")
         return True

@@ -49,12 +49,12 @@ def tokenizar(codigo_fuente: str, nombre_archivo: str)-> list[Token]:
                     tipo="Comentario sin cerrar",
                     archivo=nombre_archivo,
                     linea=linea_apertura,
-                    pista="Hay un comentario que nunca se cierra.",
+                    indicio="Hay un comentario que nunca se cierra.",
                     descripcion=(
-                        f"El comentario abierto con '{{' en la linea {linea_apertura}, "
+                        f"El comentario abierto con '{{' en la línea {linea_apertura}, "
                         f"columna {columna_apertura} no tiene su '}}' de cierre."
                     ),
-                    causa_posible="Revisa si te falto una llave de cierre '}'.",
+                    causa_posible="Revisa si te faltó una llave de cierre '}'.",
                 )
 
             posicion += 1
@@ -66,9 +66,9 @@ def tokenizar(codigo_fuente: str, nombre_archivo: str)-> list[Token]:
                 tipo="Cierre de comentario sin apertura",
                 archivo=nombre_archivo,
                 linea=linea,
-                pista="Hay una llave de cierre '}' que no corresponde a ningun comentario.",
-                descripcion="Se encontro '}' sin un '{' que abra un comentario antes.",
-                causa_posible="Revisa si te falto la llave de apertura '{' o si sobra esta '}'.",
+                indicio="Hay un cierre de comentario que no tiene su apertura.",
+                descripcion="Se encontró '}' sin un '{' que abra un comentario antes.",
+                causa_posible="Revisa si te faltó la llave de apertura '{' o si sobra esta '}'.",
             )
 
         if caracter == "!":
@@ -174,9 +174,9 @@ def tokenizar(codigo_fuente: str, nombre_archivo: str)-> list[Token]:
                             tipo="Cadena de texto sin cerrar",
                             archivo=nombre_archivo,
                             linea=linea,
-                            pista="Hay una cadena de texto que nunca se cierra.",
-                            descripcion="Se esperaba una comilla simple ' para cerrar la cadena de texto y no se encontro antes del final del archivo.",
-                            causa_posible="Revisa si te falto una comilla simple de cierre.",
+                            indicio="Hay una cadena de texto que nunca se cierra.",
+                            descripcion="Se esperaba una comilla simple ' para cerrar la cadena de texto y no se encontró antes del final del archivo.",
+                            causa_posible="Revisa si te faltó una comilla simple de cierre.",
                         )
 
                     lexema = codigo_fuente[inicio:posicion]
@@ -203,12 +203,12 @@ def tokenizar(codigo_fuente: str, nombre_archivo: str)-> list[Token]:
 
             if palabra != "expediente":
                 raise ErrorLexico(
-                    tipo="Importacion mal formada.",
+                    tipo="Importación mal formada.",
                     archivo=nombre_archivo,
                     linea=linea,
-                    pista="Despues de '#' se esperaba la palabra 'expediente'.",
-                    descripcion=f"Se encontró '{palabra}' en lugar de 'expediente' despues de '#'.",
-                    causa_posible="Revisa que la directiva de importacion tenga la forma #expediente <archivo.eng>.",
+                    indicio="Parece que una importación está mal escrita.",
+                    descripcion=f"Se encontró '{palabra}' en lugar de 'expediente' después de '#'.",
+                    causa_posible="Revisa que la directiva de importación tenga la forma #expediente <archivo.eng>.",
                 )
 
             tokens.append(Token(TipoToken.EXPEDIENTE, "expediente", None, linea, columna_palabra))
@@ -219,10 +219,10 @@ def tokenizar(codigo_fuente: str, nombre_archivo: str)-> list[Token]:
 
             if posicion >= len(codigo_fuente) or codigo_fuente[posicion] != "<":
                 raise ErrorLexico(
-                    tipo="Importacion mal formada.",
+                    tipo="Importación mal formada.",
                     archivo=nombre_archivo,
                     linea=linea,
-                    pista="Se esperaba '<' despues de 'expediente'.",
+                    indicio="Parece que una importación está mal escrita.",
                     descripcion="La directiva de importación debe tener forma #expediente <archivo.eng>.",
                     causa_posible="Revisa que no te falte el '<' antes del nombre del archivo.",
                 )
@@ -238,10 +238,10 @@ def tokenizar(codigo_fuente: str, nombre_archivo: str)-> list[Token]:
 
             if posicion >= len(codigo_fuente):
                 raise ErrorLexico(
-                    tipo="Importacion mal formada",
+                    tipo="Importación mal formada",
                     archivo=nombre_archivo,
                     linea=linea,
-                    pista="La ruta del archivo importado nunca se cierra.",
+                    indicio="La ruta del archivo importado nunca se cierra.",
                     descripcion="Se esperaba '>' para cerrar la ruta del archivo importado.",
                     causa_posible="Revisa si faltó  el '>' de cierre",
                 )
@@ -253,12 +253,12 @@ def tokenizar(codigo_fuente: str, nombre_archivo: str)-> list[Token]:
             continue
 
         raise ErrorLexico(
-            tipo ="Caracter no reconocido",
+            tipo="Carácter no reconocido",
             archivo=nombre_archivo,
             linea=linea,
-            pista="Hay un simbolo que Enigma no reconoce en tu caso.",
-            descripcion=f"El caracter '{caracter}' no es valido en Enigma.",
-            causa_posible="Revisa si escribiste un simbolo que no existe en este lenguaje.",
+            indicio="Hay un símbolo que Enigma no reconoce en tu caso.",
+            descripcion=f"El carácter '{caracter}' no es válido en Enigma.",
+            causa_posible="Revisa si escribiste un símbolo que no existe en este lenguaje.",
         )
 
     tokens.append(Token(TipoToken.FIN_DE_ARCHIVO, "", None, linea, columna))

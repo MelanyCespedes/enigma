@@ -1,0 +1,9 @@
+#expediente <a.eng>
+
+escena DeB()::entero inicio
+    concluir 2!
+fin!
+
+caso DeB abierto
+    revelar('b')!
+caso DeB cerrado!

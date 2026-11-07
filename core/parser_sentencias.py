@@ -1,6 +1,7 @@
 from core.tokens import TipoToken
 from core.errors import ErrorSintactico
 from core.ast_nodes import DeclaracionPista, Asignacion, Revelar, Consultar
+from core.parser_base import INDICIO_ABRIR_CERRAR
 
 
 class _SentenciasMixin:
@@ -40,12 +41,12 @@ class _SentenciasMixin:
             tipo="Sentencia no reconocida",
             archivo=self.nombre_archivo,
             linea=self._actual().linea,
-            pista="Hay una instruccion que el parser no reconoce en este punto.",
+            indicio=INDICIO_ABRIR_CERRAR,
             descripcion=(
                 f"No se esperaba el token {self._actual().tipo.name} "
                 f"('{self._actual().lexema}') al inicio de una sentencia."
             ),
-            causa_posible="Revisa que la instruccion sea una de las soportadas en este punto.",
+            causa_posible="Revisa que la instrucción sea una de las soportadas en este punto.",
         )
 
     def _parsear_declaracion_pista(self) -> DeclaracionPista:

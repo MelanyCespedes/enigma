@@ -1,0 +1,5 @@
+{ M5: operar aritmeticamente un valor sin_pista }
+caso A abierto
+    pista vacio = entero(valor: sin_pista)!
+    revelar(conectar(vacio, 2))!
+caso A cerrado!

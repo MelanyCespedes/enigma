@@ -129,7 +129,7 @@ class Interprete:
                 coleccion = coleccion[indice]
             except IndexError:
                 raise self._error_ejecucion(
-                    pista="El índice se sale del rango de la colección.",
+                    indicio="El índice se sale del rango de la colección.",
                     descripcion=f"Se intentó acceder a la posición {indice} al asignar.",
                     causa="El índice es mayor o igual al tamaño de la lista o tablero.",
                 )
@@ -138,7 +138,7 @@ class Interprete:
             coleccion[indices[-1]] = valor
         except IndexError:
             raise self._error_ejecucion(
-                pista="El índice se sale del rango de la colección.",
+                indicio="El índice se sale del rango de la colección.",
                 descripcion=f"Se intentó asignar en la posición {indices[-1]}.",
                 causa="El índice es mayor o igual al tamaño de la lista o tablero.",
             )
@@ -221,7 +221,7 @@ class Interprete:
             return self._llamar_funcion(expr)
 
         raise self._error_ejecucion(
-            pista="No se pudo evaluar una expresión.",
+            indicio="No se pudo evaluar una expresión.",
             descripcion=f"Nodo no reconocido: {type(expr).__name__}.",
             causa="Error interno del intérprete.",
         )
@@ -244,14 +244,14 @@ class Interprete:
         if expr.operador == "repartir":
             if valores[1] == 0:
                 raise self._error_ejecucion(
-                    pista="No se puede repartir entre cero.",
+                    indicio="Parece que una división no se puede calcular con esos valores.",
                     descripcion=f"repartir({valores[0]}, {valores[1]}) es indefinido.",
                     causa="El segundo valor de una división es cero.",
                 )
             return valores[0] / valores[1]
 
         raise self._error_ejecucion(
-            pista="Operador aritmético desconocido.",
+            indicio="Operador aritmético desconocido.",
             descripcion=f"'{expr.operador}' no es un operador válido.",
             causa="Error interno del intérprete.",
         )
@@ -269,7 +269,7 @@ class Interprete:
             return bool(izquierda or self._evaluar(expr.derecha, entorno))
 
         raise self._error_ejecucion(
-            pista="Operador lógico desconocido.",
+            indicio="Operador lógico desconocido.",
             descripcion=f"'{expr.operador}' no es un operador válido.",
             causa="Error interno del intérprete.",
         )
@@ -296,7 +296,7 @@ class Interprete:
                 valor = valor[indice]
             except IndexError:
                 raise self._error_ejecucion(
-                    pista="El índice se sale del rango de la lista o tablero.",
+                    indicio="El índice se sale del rango de la lista o tablero.",
                     descripcion=f"Se intentó acceder a la posición {indice}.",
                     causa="El índice es mayor o igual al tamaño de la colección.",
                 )
@@ -319,16 +319,16 @@ class Interprete:
             except _SenalRetorno as retorno:
                 if isinstance(funcion, Proceso):
                     raise self._error_ejecucion(
-                        pista=f"'{llamada.nombre}' no debería devolver un valor.",
-                        descripcion="Un proceso no puede usar 'concluir'.",
+                        indicio="Parece que un proceso está devolviendo un valor.",
+                        descripcion=f"'{llamada.nombre}' es un proceso y un proceso no puede usar 'concluir'.",
                         causa="Error interno: el semántico debió detectar esto antes.",
                     )
                 return retorno.valor
 
             if isinstance(funcion, Escena):
                 raise self._error_ejecucion(
-                    pista=f"'{llamada.nombre}' terminó sin 'concluir'.",
-                    descripcion="La escena debía devolver un valor y no lo hizo.",
+                    indicio="Parece que una escena terminó sin entregar un valor.",
+                    descripcion=f"La escena '{llamada.nombre}' debía devolver un valor y terminó sin 'concluir'.",
                     causa="Falta un 'concluir' en algún camino de ejecución.",
                 )
             return None
@@ -358,7 +358,7 @@ class Interprete:
             if texto == "NoCulpable":
                 return False
             raise self._error_ejecucion(
-                pista=f"'{nombre}' solo acepta culpable o NoCulpable.",
+                indicio="Parece que escribiste un dato que no es del tipo esperado.",
                 descripcion=f"Se escribió '{texto}', pero '{nombre}' es una declaracion (booleano).",
                 causa="Escribe exactamente culpable o NoCulpable.",
             )
@@ -367,7 +367,7 @@ class Interprete:
                 return int(texto)
             except ValueError:
                 raise self._error_ejecucion(
-                    pista=f"'{nombre}' espera un número entero.",
+                    indicio="Parece que escribiste un dato que no es del tipo esperado.",
                     descripcion=f"Se escribió '{texto}', pero '{nombre}' es un entero.",
                     causa="Escribe un número sin decimales, por ejemplo 25.",
                 ) from None
@@ -376,7 +376,7 @@ class Interprete:
                 return float(texto)
             except ValueError:
                 raise self._error_ejecucion(
-                    pista=f"'{nombre}' espera un número decimal.",
+                    indicio="Parece que escribiste un dato que no es del tipo esperado.",
                     descripcion=f"Se escribió '{texto}', pero '{nombre}' es un decimal.",
                     causa="Escribe un número, por ejemplo 15.5.",
                 ) from None
@@ -398,12 +398,12 @@ class Interprete:
             pass
         return texto
 
-    def _error_ejecucion(self, pista: str, descripcion: str, causa: str) -> ErrorDeEjecucion:
+    def _error_ejecucion(self, indicio: str, descripcion: str, causa: str) -> ErrorDeEjecucion:
         return ErrorDeEjecucion(
-            tipo="ejecucion",
+            tipo="ejecución",
             archivo=self.archivo,
             linea=self._linea_actual,
-            pista=pista,
+            indicio=indicio,
             descripcion=descripcion,
             causa_posible=causa,
         )

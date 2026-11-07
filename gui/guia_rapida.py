@@ -1,5 +1,5 @@
-"""Panel "Guia rapida" (derecha, como en el diseno): una pista, atajos, colores y el
-acceso al Constructor de pistas."""
+"""Panel "Guia rapida" (derecha, como en el diseno): un indicio, atajos, colores y el
+acceso al Constructor de bloques."""
 from __future__ import annotations
 
 import tkinter as tk
@@ -10,8 +10,8 @@ from gui.pestana_editor import COLORES_RESALTADO
 from gui import resaltado
 
 FAMILIA = "Segoe UI"
-TEXTO_PISTA_INICIAL = (
-    "Antes del error completo, Enigma te da una pista: te dice qué revisar, no dónde. "
+TEXTO_INDICIO_INICIAL = (
+    "Antes del error completo, Enigma te da un indicio: te dice qué revisar, no dónde. "
     "Búscalo tú."
 )
 
@@ -32,7 +32,7 @@ def _linea(padre) -> tk.Frame:
 
 
 class GuiaRapida(tk.Frame):
-    """al_ocultar(): contrae el panel.  al_constructor(): abre el Constructor de pistas."""
+    """al_ocultar(): contrae el panel.  al_constructor(): abre el Constructor de bloques."""
 
     def __init__(self, master, al_ocultar, al_constructor):
         super().__init__(master, bg=tema.FONDO)
@@ -54,7 +54,7 @@ class GuiaRapida(tk.Frame):
         self._construir_sintaxis()
         self._construir_constructor(al_constructor)
 
-    # ---------- tarjeta de pista ----------
+    # ---------- tarjeta de indicio ----------
 
     def _construir_consejo(self) -> None:
         tarjeta = tk.Frame(
@@ -65,21 +65,26 @@ class GuiaRapida(tk.Frame):
         fila = tk.Frame(tarjeta, bg=tema.SELECCION)
         fila.pack(side="top", fill="x", padx=14, pady=(12, 2))
         tk.Label(fila, image=recursos.icono("bombilla", master=self), bg=tema.SELECCION).pack(side="left")
-        tk.Label(
-            fila, text="Primero recibe una pista", bg=tema.SELECCION, fg=tema.TEXTO_FUERTE,
-            font=(FAMILIA, 10, "bold"),
-        ).pack(side="left", padx=(10, 0))
+        titulo = tk.Label(
+            fila, text="Primero recibe un indicio", bg=tema.SELECCION, fg=tema.TEXTO_FUERTE,
+            font=(FAMILIA, 10, "bold"), anchor="w", justify="left", wraplength=140,
+        )
+        titulo.pack(side="left", padx=(10, 0))
 
-        self._pista = tk.Label(
-            tarjeta, text=TEXTO_PISTA_INICIAL, bg=tema.SELECCION, fg="#e6dcf2", font=(FAMILIA, 9),
+        self._indicio = tk.Label(
+            tarjeta, text=TEXTO_INDICIO_INICIAL, bg=tema.SELECCION, fg="#e6dcf2", font=(FAMILIA, 9),
             justify="left", anchor="nw", wraplength=200,
         )
-        self._pista.pack(side="top", fill="x", padx=(44, 14), pady=(0, 14))
-        tarjeta.bind("<Configure>", lambda e: self._pista.config(wraplength=max(120, e.width - 70)))
+        self._indicio.pack(side="top", fill="x", padx=(44, 14), pady=(0, 14))
+        def ajustar(e):
+            self._indicio.config(wraplength=max(120, e.width - 70))
+            titulo.config(wraplength=max(80, e.width - 80))  # el titulo baja de linea en vez de cortarse
 
-    def mostrar_pista(self, texto: str | None) -> None:
-        """Muestra la pista del ultimo error (o el consejo inicial si ya no hay error)."""
-        self._pista.config(text=texto if texto else TEXTO_PISTA_INICIAL)
+        tarjeta.bind("<Configure>", ajustar)
+
+    def mostrar_indicio(self, texto: str | None) -> None:
+        """Muestra el indicio del ultimo error (o el consejo inicial si ya no hay error)."""
+        self._indicio.config(text=texto if texto else TEXTO_INDICIO_INICIAL)
 
     # ---------- atajos y colores ----------
 
@@ -111,7 +116,7 @@ class GuiaRapida(tk.Frame):
                 side="left", padx=(0, 9)
             )
 
-    # ---------- constructor de pistas ----------
+    # ---------- constructor de bloques ----------
 
     def _construir_constructor(self, al_constructor) -> None:
         tarjeta = tk.Frame(
@@ -124,7 +129,8 @@ class GuiaRapida(tk.Frame):
         textos = tk.Frame(tarjeta, bg=tema.TARJETA)
         textos.pack(side="left", fill="x", expand=True)
         titulo = tk.Label(
-            textos, text="Constructor de pistas", bg=tema.TARJETA, fg="#d9a8f0", font=(FAMILIA, 10, "bold"), anchor="w"
+            textos, text="Constructor de bloques", bg=tema.TARJETA, fg="#d9a8f0", font=(FAMILIA, 10, "bold"),
+            anchor="w", justify="left", wraplength=140,
         )
         titulo.pack(fill="x")
         subtitulo = tk.Label(
@@ -132,7 +138,11 @@ class GuiaRapida(tk.Frame):
             font=(FAMILIA, 8), anchor="w", justify="left", wraplength=140,
         )
         subtitulo.pack(fill="x")
-        textos.bind("<Configure>", lambda e: subtitulo.config(wraplength=max(80, e.width - 4)))
+        def ajustar_textos(e):
+            subtitulo.config(wraplength=max(80, e.width - 4))
+            titulo.config(wraplength=max(80, e.width - 4))
+
+        textos.bind("<Configure>", ajustar_textos)
         flecha = tk.Label(tarjeta, image=recursos.icono("chevron_der_claro", master=self), bg=tema.TARJETA)
         flecha.pack(side="right", padx=(0, 8))
 

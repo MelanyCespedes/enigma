@@ -4,19 +4,21 @@ import sys
 import tkinter as tk
 from tkinter import filedialog, ttk
 
-from gui import ajustes, constructor_pistas, dialogos, recursos, tema
+from gui import ajustes, dialogos, recursos, tema
 from gui.cabecera import Cabecera
 from gui.editor_widget import EditorCodigo
 from gui.file_tree import ArbolArchivos
 from gui.guia_contenido import SECCIONES
 from gui.herramientas import PanelHerramientas
 from gui.output_panel import PanelSalida
-from gui.panel_derecho import DETECTIVE, PanelDerecho
+from gui.panel_derecho import CONSTRUCTOR, DETECTIVE, PanelDerecho
 from gui.tema import CABECERA, SELECCION_SUAVE, TEXTO, aplicar_tema, oscurecer_barra_titulo
 
 ANCHO_IZQUIERDA = 222
-ANCHO_RAPIDA = 260
+ANCHO_RAPIDA = 285
 ANCHO_DETECTIVE = 420
+ANCHO_CONSTRUCTOR = 360
+ANCHOS = {DETECTIVE: ANCHO_DETECTIVE, CONSTRUCTOR: ANCHO_CONSTRUCTOR}
 
 
 class VentanaPrincipal(tk.Tk):
@@ -94,7 +96,7 @@ class VentanaPrincipal(tk.Tk):
                 self.arbol.obtener_directorio_proyecto(),
             ),
             guardar_archivos_abiertos=self.editor.guardar_todos,
-            on_pista=lambda texto: self.derecha.rapida.mostrar_pista(texto),
+            on_indicio=lambda texto: self.derecha.rapida.mostrar_indicio(texto),
             on_evento=self._evento_panel,
         )
         centro.add(self.editor, weight=4)
@@ -104,7 +106,7 @@ class VentanaPrincipal(tk.Tk):
             horizontal,
             al_insertar=self.insertar_desde_guia,
             al_ocultar=self.ocultar_derecha,
-            al_constructor=self.abrir_constructor,
+            al_insertar_constructor=self.insertar_desde_constructor,
             al_cambiar_vista=self._vista_cambiada,
         )
         self.derecha.configure(width=ANCHO_RAPIDA, height=100)
@@ -142,7 +144,7 @@ class VentanaPrincipal(tk.Tk):
         ayuda = self._crear_menu(barra, "Ayuda")
         ayuda.add_command(label="Guía rápida", command=self.mostrar_rapida)
         ayuda.add_command(label="Guía del detective", accelerator="F1", command=self.alternar_guia)
-        ayuda.add_command(label="Constructor de pistas", command=self.abrir_constructor)
+        ayuda.add_command(label="Constructor de bloques", command=self.abrir_constructor)
         ayuda.add_separator()
         for seccion in SECCIONES:
             ayuda.add_command(
@@ -177,7 +179,7 @@ class VentanaPrincipal(tk.Tk):
         try:
             self._contenedor.sashpos(0, ANCHO_IZQUIERDA)
             if self._derecha_visible:
-                ancho = ANCHO_DETECTIVE if self.derecha.vista == DETECTIVE else ANCHO_RAPIDA
+                ancho = ANCHOS.get(self.derecha.vista, ANCHO_RAPIDA)
                 self._contenedor.sashpos(1, total - ancho)
         except tk.TclError:
             pass
@@ -218,7 +220,16 @@ class VentanaPrincipal(tk.Tk):
             self.mostrar_guia()
 
     def abrir_constructor(self) -> None:
-        constructor_pistas.abrir(self, self.editor.insertar_texto)
+        """Muestra el Constructor de bloques en la columna derecha."""
+        self.mostrar_derecha()
+        self.derecha.mostrar_constructor()
+
+    def insertar_desde_constructor(self, texto: str, nombre: str) -> bool:
+        """Con un archivo abierto, el bloque se escribe en el cursor (asi se pueden ir sumando bloques).
+        Sin ningun archivo abierto, sigue el flujo de la Guia: crea un proyecto y un archivo nuevos."""
+        if self.editor.obtener_ruta_activa():
+            return self.editor.insertar_texto(texto)
+        return self.insertar_desde_guia(texto, nombre)
 
     def insertar_desde_guia(self, texto: str, nombre: str = "codigo_enigma") -> bool:
         """Crea un archivo nuevo con el contenido seleccionado en la Guia."""

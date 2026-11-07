@@ -80,16 +80,21 @@ los comentarios se escriben `{ así }`; el texto va entre comillas simples.
 
 ## El IDE
 
-Diseño de referencia: `docs/diseno_ide.png`. El detalle de uso va en el manual de usuario.
+El detalle de uso va en el manual de usuario.
 
 - **Proyectos con varios archivos**: árbol de archivos con carpetas, renombrar, eliminar y
   marcar el **archivo principal** (★).
 - **Editor** con pestañas, números de línea, resaltado de sintaxis y búsqueda (`Ctrl+F`).
 - **Compilar** y **Ejecutar caso**, con el resultado en el panel inferior (Salida y Terminal).
   `consultar` pide el dato escribiendo en el mismo panel.
+- **Advertencias**: el panel avisa de pistas sin usar, código después de `concluir` y parámetros
+  sin usar (una escena sin `concluir` es un error, no una advertencia). Siguen la misma idea de dos pasos: primero un resumen por tipo
+  (sin decir dónde) y, si compilas de nuevo sin cambiarlas, el detalle con archivo y línea.
+  Salen también cuando hay un error (en un error de sintaxis, solo si lo que falta es un `!`).
+  El caso se puede ejecutar igual.
 - **Guía del detective** (`F1`): consulta del lenguaje con ejemplos que se insertan en el editor.
-- **Constructor de pistas**: arma código con formularios y lo valida con el compilador.
-- **Innovación, errores en dos pasos**: ante un error el IDE primero da una *pista* que orienta
+- **Constructor de bloques**: arma código con formularios y lo valida con el compilador.
+- **Innovación, errores en dos pasos**: ante un error el IDE primero da un *indicio* que orienta
   sin decir dónde está; si repites el mismo error, muestra la explicación completa con
   archivo, línea y causa posible.
 
@@ -128,13 +133,15 @@ enigma/
 │   ├── module_resolver.py Resuelve #expediente y detecta ciclos
 │   ├── symbols.py         Tabla de símbolos y alcances
 │   ├── semantic.py        Valida tipos, alcances, constantes, llamadas…
+│   ├── advertencias.py    Avisos que no detienen el programa (pista sin usar, código inalcanzable…)
 │   ├── interpreter.py     Ejecuta el AST
-│   └── errors.py          Jerarquía de errores (Pista Fallida de Razonamiento)
+│   └── errors.py          Jerarquía de errores (Indicio Fallido de Razonamiento)
 ├── gui/               El IDE en tkinter (ventana, editor, árbol, panel de salida, guías)
-│   ├── pistas.py          Pistas de error de la innovación
+│   ├── indicios.py        Indicios de error de la innovación
 │   └── assets/            Logo e iconos (los genera herramientas/)
-├── herramientas/      Scripts que generan el logo y los iconos
+├── herramientas/      Scripts que generan el logo, los iconos y el informe de pruebas
 ├── tests/             Pruebas con pytest
+│   └── programas_prueba/  Los 20 programas .eng del enunciado (§18) y su catálogo
 ├── ejemplos/          Programas .eng de ejemplo
 ├── ejemplo_gui/       Proyecto de ejemplo para abrir en el IDE
 └── docs/              Documentación del proyecto
@@ -144,4 +151,5 @@ enigma/
 
 ```bash
 pytest tests/ -v
+python herramientas/informe_pruebas.py   # tabla de los 20 programas de prueba → docs/Pruebas_Programas.md
 ```

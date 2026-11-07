@@ -1,0 +1,4 @@
+{ S1: falta el terminador ! en una sentencia }
+caso A abierto
+    revelar('hola')
+caso A cerrado!

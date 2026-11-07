@@ -1,0 +1,5 @@
+{ M2: reasignar una constante declarada con hecho }
+caso A abierto
+    hecho maximo = entero(valor: 3)!
+    maximo = entero(valor: 5)!
+caso A cerrado!

@@ -1,0 +1,3 @@
+{ S5: el caso principal nunca se cierra }
+caso A abierto
+    revelar('hola')!

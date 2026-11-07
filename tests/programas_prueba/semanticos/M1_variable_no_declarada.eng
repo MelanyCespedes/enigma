@@ -1,0 +1,4 @@
+{ M1: uso de una variable que no existe }
+caso A abierto
+    revelar(sospechoso)!
+caso A cerrado!

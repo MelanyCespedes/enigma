@@ -1,6 +1,6 @@
 from __future__ import annotations
-from dataclasses import dataclass
-from typing import Optional, Union
+from dataclasses import dataclass, fields, is_dataclass
+from typing import Iterator, Optional, Union
 
 # ---------- Programa ----------
 @dataclass
@@ -223,3 +223,14 @@ Expresion = Union[
     TableroLiteral,
     AccesoIndice,
 ]
+
+def recorrer(obj) -> Iterator[object]:
+    """Todos los nodos que cuelgan de 'obj' (incluido el propio), a cualquier profundidad.
+    'obj' puede ser un nodo o una lista de nodos (por ejemplo, el cuerpo de una funcion)."""
+    if isinstance(obj, list):
+        for elemento in obj:
+            yield from recorrer(elemento)
+    elif is_dataclass(obj):
+        yield obj
+        for campo in fields(obj):
+            yield from recorrer(getattr(obj, campo.name))

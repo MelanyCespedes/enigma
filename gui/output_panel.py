@@ -8,7 +8,8 @@ import tkinter as tk
 from datetime import datetime
 from tkinter import ttk
 
-from core.errors import PistaFallidaDeRazonamiento
+from core.advertencias import advertencias_tras_error_de_sintaxis, buscar_advertencias, resumen_por_tipo
+from core.errors import ErrorSintactico, IndicioFallidoDeRazonamiento
 from core.interpreter import ejecutar
 from core.lexer import tokenizar
 from core.module_resolver import resolver_importaciones
@@ -17,7 +18,7 @@ from core.semantic import analizar
 from gui import recursos, tema
 from gui.botones import autoocultar
 from gui.botones import BotonIcono
-from gui.pistas import elegir_pista
+from gui.indicios import elegir_indicio
 
 
 FAMILIA = "Segoe UI"
@@ -64,19 +65,20 @@ class PanelSalida(tk.Frame):
     """Panel inferior: solapas Salida y Terminal (bitacora), estado y boton Limpiar.
 
     Callbacks opcionales:
-      on_pista(texto | None)     una pista nueva para la tarjeta "Primero recibe una pista"
+      on_indicio(texto | None)     un indicio nuevo para la tarjeta "Primero recibe un indicio"
       on_evento("ok" | "error")  resultado de compilar/ejecutar (para la campana)
     """
 
     def __init__(self, master, obtener_proyecto, guardar_archivos_abiertos=None,
-                 on_pista=None, on_evento=None, **kwargs):
+                 on_indicio=None, on_evento=None, **kwargs):
         super().__init__(master, bg=tema.SALIDA, **kwargs)
         self.obtener_proyecto = obtener_proyecto
         self.guardar_archivos_abiertos = guardar_archivos_abiertos
-        self.on_pista = on_pista
+        self.on_indicio = on_indicio
         self.on_evento = on_evento
         self.programa_compilado = None
         self._ultima_firma_error = None
+        self._ultima_firma_advertencias = None
         self._ocupado = False
         self._en_inicio = True
         self._nombre_principal = ""
@@ -119,7 +121,8 @@ class PanelSalida(tk.Frame):
         for widget in (self.texto, self.terminal):
             widget.tag_configure("error", foreground=tema.ERROR)
             widget.tag_configure("ok", foreground=tema.EXITO)
-            widget.tag_configure("pista", foreground=tema.AVISO)
+            widget.tag_configure("indicio", foreground=tema.AVISO)
+            widget.tag_configure("advertencia", foreground=tema.ADVERTENCIA)
             widget.tag_configure("prompt", foreground=tema.PURPURA)
             widget.tag_configure("comando", foreground=tema.TEXTO)
             widget.tag_configure("hora", foreground="#525767")
@@ -226,35 +229,54 @@ class PanelSalida(tk.Frame):
 
     # ---------- errores ----------
 
-    def _firma_error(self, error: PistaFallidaDeRazonamiento) -> tuple:
+    def _firma_error(self, error: IndicioFallidoDeRazonamiento) -> tuple:
         """Identifica un error de forma unica: mismo tipo, archivo, linea y
         descripcion => se considera 'el mismo problema' entre intentos."""
         return (type(error).__name__, error.archivo, error.linea, error.descripcion)
 
-    def _pista_de(self, error: PistaFallidaDeRazonamiento) -> str:
-        return elegir_pista(error.pista, type(error).__name__)
+    def _indicio_de(self, error: IndicioFallidoDeRazonamiento) -> str:
+        return elegir_indicio(error.indicio, type(error).__name__)
 
-    def _mostrar_error(self, error: PistaFallidaDeRazonamiento) -> None:
+    def _mostrar_error(self, error: IndicioFallidoDeRazonamiento) -> None:
         firma = self._firma_error(error)
-        pista = self._pista_de(error)
+        indicio = self._indicio_de(error)
 
         if firma == self._ultima_firma_error:
             # Segundo intento con exactamente el mismo error.
             self._agregar_texto(
                 "Volviste a encontrar el mismo problema. Aquí está la explicación completa:\n",
-                "pista",
+                "indicio",
             )
             self._agregar_texto(error.mostrar_completo() + "\n", "error")
         else:
-            # Primer intento: solo una pista, sin decir donde esta el error.
+            # Primer intento: solo una indicio, sin decir donde esta el error.
             self._agregar_texto(
-                f"Pista: {pista}\nCorrige lo que creas necesario y vuelve a intentarlo.\n",
-                "pista",
+                f"Indicio de error: {indicio}\nCorrige lo que creas necesario y vuelve a intentarlo.\n",
+                "indicio",
             )
 
         self._ultima_firma_error = firma
-        if self.on_pista:
-            self.on_pista(pista)
+        if self.on_indicio:
+            self.on_indicio(indicio)
+
+    def _mostrar_advertencias(self, advertencias: list) -> None:
+        """Mismo criterio que los errores: la primera vez solo un resumen por tipo (sin decir donde);
+        si se compila otra vez con las mismas advertencias, el detalle con archivo y linea."""
+        firma = tuple(a.firma for a in advertencias)
+        if not advertencias:
+            self._ultima_firma_advertencias = None
+            return
+
+        if firma == self._ultima_firma_advertencias:
+            self._agregar_texto("Sigues teniendo las mismas advertencias. Aquí está el detalle:\n\n", "advertencia")
+            for advertencia in advertencias:
+                self._agregar_texto(advertencia.mostrar_completo() + "\n\n", "advertencia")
+        else:
+            self._agregar_texto("Indicio de advertencia: tu caso tiene cosas sospechosas.\n", "advertencia")
+            for linea in resumen_por_tipo(advertencias):
+                self._agregar_texto(f"  · {linea}\n", "advertencia")
+            self._agregar_texto("Revísalo y vuelve a compilar.\n\n", "advertencia")
+        self._ultima_firma_advertencias = firma
 
     # ---------- entrada de datos (consultar) ----------
 
@@ -349,6 +371,8 @@ class PanelSalida(tk.Frame):
         self._comando(f"compilar {nombre_archivo}")
         self._poner_estado("Compilando…", "trabajando")
 
+        programa = None
+        tokens = None
         try:
             with open(ruta_principal, encoding="utf-8") as f:
                 codigo = f.read()
@@ -357,8 +381,19 @@ class PanelSalida(tk.Frame):
             programa = parsear(tokens, nombre_archivo)
             resolver_importaciones(programa, os.path.dirname(ruta_principal))
             analizar(programa)
-        except PistaFallidaDeRazonamiento as error:
+        except IndicioFallidoDeRazonamiento as error:
             self._mostrar_error(error)
+            # Tambien se avisa de lo sospechoso. Con un error semantico o de importacion ya hay arbol;
+            # con un '!' olvidado se supone el sello para poder seguir leyendo; otros errores no permiten revisar.
+            if programa is not None:
+                advertencias = buscar_advertencias(programa)
+            elif tokens is not None and isinstance(error, ErrorSintactico):
+                advertencias = advertencias_tras_error_de_sintaxis(tokens, nombre_archivo, error)
+            else:
+                advertencias = []
+            if advertencias:
+                self._agregar_texto("\n")
+            self._mostrar_advertencias(advertencias)
             self._poner_estado("Compilación fallida", "error")
             self._registrar(
                 f"compilar {nombre_archivo} → error de {error.tipo} ({error.archivo}, línea {error.linea})", "error"
@@ -368,11 +403,15 @@ class PanelSalida(tk.Frame):
 
         self._ultima_firma_error = None  # se resolvio: reinicia el seguimiento
         self.programa_compilado = programa
+        advertencias = buscar_advertencias(programa)
+        self._mostrar_advertencias(advertencias)
         self._poner_estado("Compilación exitosa", "listo")
         self._agregar_texto("Compilación exitosa.\n", "ok")
-        self._registrar(f"compilar {nombre_archivo} → exitosa", "ok")
-        if self.on_pista:
-            self.on_pista(None)
+        if advertencias:
+            self._agregar_texto(f"{len(advertencias)} advertencia(s): el caso se puede ejecutar igual.\n", "advertencia")
+        self._registrar(f"compilar {nombre_archivo} → exitosa, {len(advertencias)} advertencia(s)", "ok")
+        if self.on_indicio:
+            self.on_indicio(None)
         self._avisar("ok")
         return True
 
@@ -398,7 +437,7 @@ class PanelSalida(tk.Frame):
         try:
             with contextlib.redirect_stdout(_EscritorTk(self)):
                 ejecutar(self.programa_compilado)
-        except PistaFallidaDeRazonamiento as error:
+        except IndicioFallidoDeRazonamiento as error:
             self._mostrar_error(error)
             self._poner_estado("Ejecución con errores", "error")
             self._registrar(f"ejecutar {self._nombre_principal} → error de {error.tipo} (línea {error.linea})", "error")

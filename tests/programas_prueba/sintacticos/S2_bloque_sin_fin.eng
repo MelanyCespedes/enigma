@@ -1,0 +1,6 @@
+{ S2: un bloque inicio sin su fin! }
+caso A abierto
+    pista x = entero(valor: 3)!
+    evaluar si (x > 1) inicio
+        revelar('mayor')!
+caso A cerrado!

@@ -1,15 +1,15 @@
-"""Logica del Constructor de pistas: arma codigo Enigma a partir de formularios y
+"""Logica del Constructor de bloques: arma codigo Enigma a partir de formularios y
 lo valida con el propio compilador. No usa tkinter (tiene pruebas en tests/)."""
 from __future__ import annotations
 
 import re
 from dataclasses import dataclass
 
-from core.errors import ErrorSemantico, PistaFallidaDeRazonamiento
+from core.errors import ErrorSemantico, IndicioFallidoDeRazonamiento
 from core.lexer import tokenizar
 from core.parser import parsear
 from core.semantic import analizar
-from gui.pistas import es_orientadora
+from gui.indicios import es_orientadora
 
 TIPOS = ("entero", "decimal", "expresion", "declaracion")
 SANGRIA = "    "
@@ -211,13 +211,13 @@ def validar(codigo: str) -> str | None:
         if "ninguna variable" in error.descripcion or "no existe" in error.descripcion.lower():
             return None
         return _mensaje(error)
-    except PistaFallidaDeRazonamiento as error:
+    except IndicioFallidoDeRazonamiento as error:
         return _mensaje(error)
     return None
 
 
-def _mensaje(error: PistaFallidaDeRazonamiento) -> str:
+def _mensaje(error: IndicioFallidoDeRazonamiento) -> str:
     """Motivo corto y legible (sin lineas ni nombres internos del compilador)."""
-    if es_orientadora(error.pista):
-        return error.pista.strip()
+    if es_orientadora(error.indicio):
+        return error.indicio.strip()
     return "El bloque no tiene una sintaxis válida. Revisa los valores del formulario."

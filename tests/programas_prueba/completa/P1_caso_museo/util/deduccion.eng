@@ -1,0 +1,20 @@
+{ Funciones de logica usadas por principal.eng }
+escena EsCero(numero: entero)::declaracion inicio
+    concluir numero == 0!
+fin!
+
+escena EsUno(numero: entero)::declaracion inicio
+    concluir numero == 1!
+fin!
+
+escena EsCulpable(sinCoartada: declaracion, huella: declaracion)::declaracion inicio
+    concluir sinCoartada y huella!
+fin!
+
+proceso Informe(culpables: entero) inicio
+    revelar('Culpables encontrados:', culpables)!
+fin!
+
+caso Biblioteca abierto
+    revelar('biblioteca de deduccion')!
+caso Biblioteca cerrado!

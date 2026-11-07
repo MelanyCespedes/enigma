@@ -1,0 +1,6 @@
+{ C1: dos archivos que se importan entre si }
+#expediente <a.eng>
+
+caso A abierto
+    revelar('no deberia llegar aqui')!
+caso A cerrado!

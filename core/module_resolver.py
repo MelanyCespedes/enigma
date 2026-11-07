@@ -58,10 +58,10 @@ def _resolver(
 
         if not os.path.isfile(ruta):
             raise ErrorDeImportacion(
-                tipo="importacion",
+                tipo="importación",
                 archivo=programa.archivo_origen,
                 linea=importacion.linea,
-                pista=f"No se encontró el archivo '{importacion.archivo}'.",
+                indicio="Parece que un archivo que importas no está donde se esperaba.",
                 descripcion=f"El archivo '{importacion.archivo}' no existe en '{directorio}'.",
                 causa_posible="Revisa el nombre del archivo o su ubicación (se busca junto al archivo que lo importa).",
             )
@@ -69,10 +69,10 @@ def _resolver(
         if _clave(ruta) in pila_rutas:
             cadena = " -> ".join(pila_nombres + [nombre])
             raise ErrorDeImportacion(
-                tipo="importacion circular",
+                tipo="importación circular",
                 archivo=programa.archivo_origen,
                 linea=importacion.linea,
-                pista="Hay una importación circular entre archivos.",
+                indicio="Hay una importación circular entre archivos.",
                 descripcion=f"La cadena de importaciones {cadena} vuelve a un archivo ya en proceso.",
                 causa_posible="Dos o más archivos se importan entre sí formando un ciclo.",
             )
@@ -105,10 +105,10 @@ def _fusionar_funciones(programa: Programa, importado: Programa, importacion) ->
             continue  # la misma funcion llegada por otro camino (diamante)
         if existente is not None:
             raise ErrorDeImportacion(
-                tipo="importacion",
+                tipo="importación",
                 archivo=programa.archivo_origen,
                 linea=importacion.linea,
-                pista=f"La función '{nombre}' ya existe.",
+                indicio="Parece que dos archivos definen una función con el mismo nombre.",
                 descripcion=(
                     f"'{nombre}' está declarada tanto en '{existente.archivo or programa.archivo_origen}' "
                     f"como en el archivo importado '{funcion.archivo or importacion.archivo}'."

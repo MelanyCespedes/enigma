@@ -24,6 +24,7 @@ from core.ast_nodes import (
     SeguirMientras,
     Suceso,
     TableroLiteral,
+    recorrer,
 )
 from core.errors import ErrorSemantico
 from core.symbols import TablaSimbolos
@@ -66,6 +67,13 @@ class AnalizadorSemantico:
     def _validar_funciones(self) -> None:
         for nombre, funcion in self.programa.funciones.items():
             self._usar_archivo(funcion.archivo or self.programa.archivo_origen)
+            if isinstance(funcion, Escena) and not any(isinstance(n, Concluir) for n in recorrer(funcion.cuerpo)):
+                self._linea_actual = funcion.linea
+                raise self._error(
+                    indicio="Parece que una escena no entrega el valor que promete.",
+                    descripcion=f"La escena '{nombre}' debe devolver '{funcion.tipo_retorno}' y no tiene ningún 'concluir'.",
+                    causa="Falta 'concluir' para entregar el valor; si no devuelve nada, debería ser un proceso.",
+                )
             self.tabla.entrar_ambito(nombre)
             for parametro in funcion.parametros:
                 self.tabla.declarar(parametro.nombre, parametro.tipo, False, funcion.linea)
@@ -133,8 +141,8 @@ class AnalizadorSemantico:
 
         if simbolo.es_constante:
             raise self._error(
-                pista=f"La pista '{asig.nombre}' es un hecho y no puede cambiar.",
-                descripcion=f"'{asig.nombre}' fue declarada con 'hecho' en la linea {simbolo.linea}.",
+                indicio="Parece que intentas cambiar algo que debía quedar fijo.",
+                descripcion=f"'{asig.nombre}' fue declarada con 'hecho' en la línea {simbolo.linea}.",
                 causa="Se intentó reasignar una constante.",
             )
 
@@ -143,7 +151,7 @@ class AnalizadorSemantico:
             self._dar_valor_a_sin_pista(simbolo, tipo_valor, asig.nombre)
         if not self._compatible(simbolo.tipo, tipo_valor):
             raise self._error(
-                pista=f"El tipo de '{asig.nombre}' no coincide con el valor asignado.",
+                indicio="Parece que le das a una pista un valor de otro tipo.",
                 descripcion=f"'{asig.nombre}' es de tipo '{simbolo.tipo}' pero se le asignó '{tipo_valor}'.",
                 causa="La expresión que se asigna no es compatible con el tipo de la variable.",
             )
@@ -151,14 +159,14 @@ class AnalizadorSemantico:
     def _validar_asignacion_indexada(self, asig: Asignacion, simbolo) -> None:
         if simbolo.es_constante:
             raise self._error(
-                pista=f"'{asig.nombre}' es un hecho; sus celdas no pueden cambiar.",
-                descripcion=f"'{asig.nombre}' fue declarada con 'hecho' en la linea {simbolo.linea}.",
+                indicio="Parece que intentas cambiar algo que debía quedar fijo.",
+                descripcion=f"'{asig.nombre}' fue declarada con 'hecho' en la línea {simbolo.linea}.",
                 causa="Se intentó modificar una celda de una constante.",
             )
 
         if not (simbolo.tipo.startswith("pistas:") or simbolo.tipo.startswith("tablero:")):
             raise self._error(
-                pista=f"'{asig.nombre}' no es una lista ni un tablero.",
+                indicio="Parece que tratas como lista o tablero algo que no lo es.",
                 descripcion=f"Solo se puede usar [] sobre 'pistas' o 'tablero'; '{asig.nombre}' es '{simbolo.tipo}'.",
                 causa="Se usaron corchetes sobre una variable que no es una colección.",
             )
@@ -166,7 +174,7 @@ class AnalizadorSemantico:
         for indice in asig.indices:
             if self._tipo_de(indice) != "entero":
                 raise self._error(
-                    pista="Los índices deben ser enteros.",
+                    indicio="Los índices deben ser enteros.",
                     descripcion="Un índice usado en la asignación no es de tipo 'entero'.",
                     causa="Se usó un decimal o un texto como posición.",
                 )
@@ -175,8 +183,8 @@ class AnalizadorSemantico:
         tipo_valor = self._tipo_de(asig.valor)
         if not self._compatible(tipo_elemento, tipo_valor):
             raise self._error(
-                pista=f"El valor no coincide con el tipo de los elementos de '{asig.nombre}'.",
-                descripcion=f"Se esperaba '{tipo_elemento}' pero se asignó '{tipo_valor}'.",
+                indicio="Parece que un valor no coincide con el tipo de los elementos de una lista.",
+                descripcion=f"Los elementos de '{asig.nombre}' son de tipo '{tipo_elemento}' pero se asignó '{tipo_valor}'.",
                 causa="Tipo incompatible al asignar una celda.",
             )
 
@@ -186,7 +194,7 @@ class AnalizadorSemantico:
             simbolo.tipo = simbolo.tipo_declarado  # consultar le dara un valor
         if simbolo.es_constante:
             raise self._error(
-                pista=f"No se puede consultar sobre el hecho '{consulta.variable}'.",
+                indicio="Parece que quieres guardar un dato en algo que debía quedar fijo.",
                 descripcion=f"'{consulta.variable}' es una constante y no acepta nuevos valores.",
                 causa="Se usó 'consultar' sobre una variable declarada con 'hecho'.",
             )
@@ -195,15 +203,15 @@ class AnalizadorSemantico:
         funcion = self.programa.funciones.get(llamada.nombre)
         if funcion is None:
             raise self._error(
-                pista=f"La función '{llamada.nombre}' no fue encontrada.",
+                indicio="Parece que llamas a una función que no existe.",
                 descripcion=f"No existe ninguna escena o proceso llamado '{llamada.nombre}'.",
                 causa="Nombre mal escrito o función no definida.",
             )
 
         if len(llamada.argumentos) != len(funcion.parametros):
             raise self._error(
-                pista=f"'{llamada.nombre}' espera {len(funcion.parametros)} argumento(s).",
-                descripcion=f"Se enviaron {len(llamada.argumentos)} argumento(s).",
+                indicio="Parece que una función recibe más o menos datos de los que espera.",
+                descripcion=f"'{llamada.nombre}' espera {len(funcion.parametros)} argumento(s) pero se enviaron {len(llamada.argumentos)}.",
                 causa="La cantidad de argumentos no coincide con los parámetros de la función.",
             )
 
@@ -211,15 +219,15 @@ class AnalizadorSemantico:
             tipo_arg = self._tipo_de(argumento)
             if not self._compatible(parametro.tipo, tipo_arg):
                 raise self._error(
-                    pista=f"Un argumento no encaja con el parámetro '{parametro.nombre}'.",
-                    descripcion=f"Se esperaba '{parametro.tipo}' pero se envió '{tipo_arg}'.",
+                    indicio="Parece que un dato enviado a una función no es del tipo que espera.",
+                    descripcion=f"El parámetro '{parametro.nombre}' espera '{parametro.tipo}' pero se envió '{tipo_arg}'.",
                     causa="Tipo de argumento incompatible con el parámetro.",
                 )
 
     def _validar_concluir(self, concluir: Concluir) -> None:
         if self._tipo_retorno is None:
             raise self._error(
-                pista="'concluir' solo puede usarse dentro de una escena.",
+                indicio="'concluir' solo puede usarse dentro de una escena.",
                 descripcion="Se encontró 'concluir' fuera de una escena o dentro de un proceso.",
                 causa="Un proceso no devuelve valor; solo las escenas pueden usar 'concluir'.",
             )
@@ -227,7 +235,7 @@ class AnalizadorSemantico:
         tipo_valor = self._tipo_de(concluir.valor)
         if not self._compatible(self._tipo_retorno, tipo_valor):
             raise self._error(
-                pista="El valor devuelto no coincide con el tipo de la escena.",
+                indicio="El valor devuelto no coincide con el tipo de la escena.",
                 descripcion=f"La escena devuelve '{self._tipo_retorno}' pero se concluyó con '{tipo_valor}'.",
                 causa="Tipo de retorno incompatible.",
             )
@@ -253,7 +261,7 @@ class AnalizadorSemantico:
         for limite in (bloque.desde, bloque.hasta):
             if self._tipo_de(limite) != "entero":
                 raise self._error(
-                    pista="Los límites de 'rastrear' deben ser enteros.",
+                    indicio="Los límites de 'rastrear' deben ser enteros.",
                     descripcion=f"El límite es de tipo '{self._tipo_de(limite)}'.",
                     causa="Un decimal no puede usarse como contador de un ciclo 'rastrear'.",
                 )
@@ -271,7 +279,7 @@ class AnalizadorSemantico:
         tipo = self._tipo_de(condicion)
         if tipo != "declaracion":
             raise self._error(
-                pista="Una condición debe ser verdadera o falsa.",
+                indicio="Una condición debe ser verdadera o falsa.",
                 descripcion=f"La condición produce un valor de tipo '{tipo}', no 'declaracion'.",
                 causa="Se usó un valor que no es lógico como condición.",
             )
@@ -299,7 +307,7 @@ class AnalizadorSemantico:
             "declaracion": "culpable o NoCulpable",
         }[literal.tipo]
         raise self._error(
-            pista=f"El valor no corresponde al tipo '{literal.tipo}'.",
+            indicio="Parece que un valor no corresponde al tipo con que lo declaraste.",
             descripcion=f"'{literal.tipo}' espera {detalle}, pero se escribió {valor!r}.",
             causa=f"Revisa el valor dentro de {literal.tipo}(valor: ...).",
         )
@@ -328,7 +336,7 @@ class AnalizadorSemantico:
                 for tipo in (tipo_izq, tipo_der):
                     if tipo in TIPOS_NO_OPERABLES:
                         raise self._error(
-                            pista=f"No se puede ordenar con '{expr.operador}' un valor de tipo '{tipo}'.",
+                            indicio="Parece que comparas por orden valores que no se pueden ordenar.",
                             descripcion=(
                                 f"'{expr.operador}' solo compara 'entero' y 'decimal'; "
                                 f"se encontró '{tipo}'."
@@ -337,7 +345,7 @@ class AnalizadorSemantico:
                         )
             if not (self._compatible(tipo_izq, tipo_der) or self._compatible(tipo_der, tipo_izq)):
                 raise self._error(
-                    pista="Solo se pueden comparar valores del mismo tipo.",
+                    indicio="Solo se pueden comparar valores del mismo tipo.",
                     descripcion=f"Se comparó '{tipo_izq}' con '{tipo_der}'.",
                     causa="Comparación entre tipos incompatibles.",
                 )
@@ -348,7 +356,7 @@ class AnalizadorSemantico:
                 tipo_elemento = self._tipo_de(elemento)
                 if not self._compatible(expr.tipo_elemento, tipo_elemento):
                     raise self._error(
-                        pista="Una lista no puede mezclar tipos de datos.",
+                        indicio="Una lista no puede mezclar tipos de datos.",
                         descripcion=(
                             f"La lista es de '{expr.tipo_elemento}' pero tiene un elemento "
                             f"de tipo '{tipo_elemento}'."
@@ -367,7 +375,7 @@ class AnalizadorSemantico:
             return self._tipo_de_llamada(expr)
 
         raise self._error(
-            pista="Expresión no reconocida.",
+            indicio="Expresión no reconocida.",
             descripcion=f"El nodo '{type(expr).__name__}' no es una expresión válida.",
             causa="Error interno del parser o del árbol.",
         )
@@ -379,8 +387,8 @@ class AnalizadorSemantico:
         funcion = self.programa.funciones[llamada.nombre]
         if isinstance(funcion, Proceso):
             raise self._error(
-                pista=f"'{llamada.nombre}' no devuelve ningún valor.",
-                descripcion="Un proceso no puede usarse dentro de una expresión.",
+                indicio="Parece que usas como valor algo que no devuelve nada.",
+                descripcion=f"'{llamada.nombre}' es un proceso y un proceso no puede usarse dentro de una expresión.",
                 causa="Se intentó usar el resultado de un proceso como si fuera un valor.",
             )
         return funcion.tipo_retorno
@@ -391,15 +399,15 @@ class AnalizadorSemantico:
         for tipo in tipos:
             if tipo in TIPOS_NO_OPERABLES:
                 raise self._error(
-                    pista=f"No se puede '{expr.operador}' un valor de tipo '{tipo}'.",
-                    descripcion="Solo 'entero' y 'decimal' participan en operaciones aritméticas.",
+                    indicio="Parece que operas con un valor que no es un número.",
+                    descripcion=f"No se puede aplicar '{expr.operador}' a un valor de tipo '{tipo}': solo 'entero' y 'decimal' participan en operaciones aritméticas.",
                     causa="Se usó un valor no numérico en una operación.",
                 )
 
         if expr.operador in ("descartar", "intensificar", "repartir") and len(tipos) != 2:
             raise self._error(
-                pista=f"'{expr.operador}' necesita exactamente dos valores.",
-                descripcion=f"Se enviaron {len(tipos)} valor(es).",
+                indicio="Parece que a una operación le faltan o le sobran valores.",
+                descripcion=f"'{expr.operador}' necesita exactamente dos valores y se enviaron {len(tipos)}.",
                 causa="Cantidad incorrecta de argumentos en una operación.",
             )
 
@@ -412,7 +420,7 @@ class AnalizadorSemantico:
         tipo_base = self._tipo_de(expr.base)
         if not (tipo_base.startswith("pistas:") or tipo_base.startswith("tablero:")):
             raise self._error(
-                pista="Solo las listas y tableros se pueden indexar.",
+                indicio="Solo las listas y tableros se pueden indexar.",
                 descripcion=f"Se intentó indexar un valor de tipo '{tipo_base}'.",
                 causa="Uso de [] sobre una variable que no es lista ni tablero.",
             )
@@ -420,7 +428,7 @@ class AnalizadorSemantico:
         for indice in expr.indices:
             if self._tipo_de(indice) != "entero":
                 raise self._error(
-                    pista="Los índices deben ser enteros.",
+                    indicio="Los índices deben ser enteros.",
                     descripcion="Un índice no es de tipo 'entero'.",
                     causa="Se usó un decimal o un texto como posición.",
                 )
@@ -431,7 +439,7 @@ class AnalizadorSemantico:
         simbolo = self.tabla.buscar(nombre)
         if simbolo is None:
             raise self._error(
-                pista=f"La pista '{nombre}' no ha sido declarada.",
+                indicio="Parece que usas algo que no declaraste.",
                 descripcion=f"No se encontró ninguna variable llamada '{nombre}' en este alcance.",
                 causa="Falta declarar la variable con 'pista' o 'hecho', o el nombre está mal escrito.",
             )
@@ -442,7 +450,7 @@ class AnalizadorSemantico:
         al recibir su primer valor (que debe ser compatible con lo declarado)."""
         if simbolo.tipo_declarado and not self._compatible(simbolo.tipo_declarado, tipo_valor):
             raise self._error(
-                pista=f"El tipo de '{nombre}' no coincide con el valor asignado.",
+                indicio="Parece que le das a una pista un valor de otro tipo.",
                 descripcion=(
                     f"'{nombre}' se declaró como '{simbolo.tipo_declarado}' pero se le asignó '{tipo_valor}'."
                 ),
@@ -461,12 +469,12 @@ class AnalizadorSemantico:
             return True
         return False
 
-    def _error(self, pista: str, descripcion: str, causa: str) -> ErrorSemantico:
+    def _error(self, indicio: str, descripcion: str, causa: str) -> ErrorSemantico:
         return ErrorSemantico(
-            tipo="semantica",
+            tipo="semántica",
             archivo=self.archivo,
             linea=self._linea_actual,
-            pista=pista,
+            indicio=indicio,
             descripcion=descripcion,
             causa_posible=causa,
         )

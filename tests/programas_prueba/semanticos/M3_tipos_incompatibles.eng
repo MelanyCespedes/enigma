@@ -1,0 +1,5 @@
+{ M3: asignar texto a una pista entera }
+caso A abierto
+    pista edad = entero(valor: 15)!
+    edad = expresion(valor: 'quince')!
+caso A cerrado!

@@ -1,0 +1,7 @@
+{ I3: el error esta dentro del archivo importado }
+#expediente <calculos.eng>
+
+caso A abierto
+    pista r = resolver Doble(4)!
+    revelar(r)!
+caso A cerrado!

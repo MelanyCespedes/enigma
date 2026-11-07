@@ -1,4 +1,4 @@
-"""Panel del Constructor de pistas (columna derecha): arma codigo con formularios y lo inserta en el editor."""
+"""Panel del Constructor de bloques (columna derecha): arma codigo con formularios y lo inserta en el editor."""
 from __future__ import annotations
 
 import tkinter as tk
@@ -12,7 +12,7 @@ from gui.pestana_editor import COLORES_RESALTADO
 FAMILIA = "Segoe UI"
 
 
-class ConstructorPistas(tk.Frame):
+class ConstructorBloques(tk.Frame):
     """Selector de bloques arriba, formulario apilado en medio y vista previa abajo.
 
     al_insertar(texto) -> bool  inserta el codigo en el editor (True si se pudo)

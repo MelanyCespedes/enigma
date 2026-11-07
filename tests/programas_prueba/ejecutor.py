@@ -10,7 +10,7 @@ import io
 import os
 from dataclasses import dataclass
 
-from core.errors import PistaFallidaDeRazonamiento
+from core.errors import IndicioFallidoDeRazonamiento
 from core.interpreter import ejecutar
 from core.lexer import tokenizar
 from core.module_resolver import resolver_importaciones
@@ -53,7 +53,7 @@ def correr(ruta_relativa: str, entradas: tuple[str, ...] = ()) -> Resultado:
         builtins.input = leer
         with contextlib.redirect_stdout(salida):
             ejecutar(programa)
-    except PistaFallidaDeRazonamiento as error:
+    except IndicioFallidoDeRazonamiento as error:
         return Resultado(
             False, salida.getvalue().splitlines(), etapa, type(error).__name__,
             error.archivo, error.linea, error.descripcion,

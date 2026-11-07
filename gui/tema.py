@@ -16,15 +16,16 @@ TEXTO_FUERTE = "#f3f0e8"   # titulos
 TEXTO_SUAVE = "#aaa6b2"    # etiquetas de seccion
 TEXTO_APAGADO = "#86838f"  # texto secundario, numeros de linea (#525767)
 ACENTO = "#ffd400"         # amarillo del logo, cursor y pestaña activa
-SELECCION = "#50306e"      # morado de la fila seleccionada y la tarjeta de pista
+SELECCION = "#50306e"      # morado de la fila seleccionada y la tarjeta de indicio
 SELECCION_BORDE = "#643e81"
 SELECCION_SUAVE = "#2f3242"  # fondo al pasar el mouse
 PURPURA = "#a45ec5"        # avatar y prompt
-TARJETA = "#32263c"        # tarjeta del constructor de pistas
+TARJETA = "#32263c"        # tarjeta del constructor de bloques
 
 ERROR = "#ff7b7b"
 EXITO = "#9ebc62"
-AVISO = "#ffc266"
+AVISO = "#ffc266"          # indicios de los errores
+ADVERTENCIA = "#6fb7ff"    # advertencias (azul, para no confundirlas con errores ni con sus indicios)
 
 FUENTE_CODIGO = ("Consolas", 11)
 
@@ -136,7 +137,7 @@ def aplicar_tema(raiz) -> None:
     estilo.configure("TPanedwindow", background=BORDE)
     estilo.configure("Sash", sashthickness=3, gripcount=0, background=BORDE)
 
-    # Controles de formulario (constructor de pistas y preferencias)
+    # Controles de formulario (constructor de bloques y preferencias)
     estilo.configure(
         "TEntry", fieldbackground=EDITOR, foreground=TEXTO, insertcolor=ACENTO,
         bordercolor=BORDE, lightcolor=BORDE, darkcolor=BORDE, padding=4,

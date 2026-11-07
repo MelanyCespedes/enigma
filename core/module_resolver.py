@@ -61,7 +61,7 @@ def _resolver(
                 tipo="importacion",
                 archivo=programa.archivo_origen,
                 linea=importacion.linea,
-                pista=f"No se encontró el archivo '{importacion.archivo}'.",
+                indicio=f"No se encontró el archivo '{importacion.archivo}'.",
                 descripcion=f"El archivo '{importacion.archivo}' no existe en '{directorio}'.",
                 causa_posible="Revisa el nombre del archivo o su ubicación (se busca junto al archivo que lo importa).",
             )
@@ -72,7 +72,7 @@ def _resolver(
                 tipo="importacion circular",
                 archivo=programa.archivo_origen,
                 linea=importacion.linea,
-                pista="Hay una importación circular entre archivos.",
+                indicio="Hay una importación circular entre archivos.",
                 descripcion=f"La cadena de importaciones {cadena} vuelve a un archivo ya en proceso.",
                 causa_posible="Dos o más archivos se importan entre sí formando un ciclo.",
             )
@@ -108,7 +108,7 @@ def _fusionar_funciones(programa: Programa, importado: Programa, importacion) ->
                 tipo="importacion",
                 archivo=programa.archivo_origen,
                 linea=importacion.linea,
-                pista=f"La función '{nombre}' ya existe.",
+                indicio=f"La función '{nombre}' ya existe.",
                 descripcion=(
                     f"'{nombre}' está declarada tanto en '{existente.archivo or programa.archivo_origen}' "
                     f"como en el archivo importado '{funcion.archivo or importacion.archivo}'."

@@ -259,7 +259,7 @@ CONTROL = Seccion(
             "        revelar('La coartada coincide.')!\n"
             "    fin!\n"
             "    sino inicio\n"
-            "        revelar('Pista fallida: revisa la coartada.')!\n"
+            "        revelar('Indicio fallido: revisa la coartada.')!\n"
             "    fin!\n"
             "caso Alternativa cerrado!",
             "evaluar si … sino", ejecutable=True,
@@ -495,8 +495,8 @@ SEMANTICA = Seccion(
         Parrafo("«#expediente <archivo.eng>» trae al archivo las funciones de otro. Se resuelven antes de compilar el código principal (mira la sección Importaciones)."),
 
         Subtitulo("Manejo de errores"),
-        Parrafo("Enigma no lanza excepciones genéricas: cada fallo es una «Pista Fallida de Razonamiento» con el tipo de error, el archivo, la línea, la descripción y una posible causa."),
-        Nota("Para entrenar el razonamiento, el IDE primero da una pista para que busques el error por tu cuenta. Si vuelves a cometer el mismo error, muestra la explicación completa."),
+        Parrafo("Enigma no lanza excepciones genéricas: cada fallo es una «Indicio Fallido de Razonamiento» con el tipo de error, el archivo, la línea, la descripción y una posible causa."),
+        Nota("Para entrenar el razonamiento, el IDE primero da un indicio para que busques el error por tu cuenta. Si vuelves a cometer el mismo error, muestra la explicación completa."),
         Lista((
             "Errores léxicos y sintácticos: un símbolo desconocido, un «!» olvidado, un bloque sin cerrar.",
             "Errores semánticos: variable no declarada, tipos incompatibles, reasignar un hecho, llamar con argumentos de más o de menos.",
@@ -669,7 +669,7 @@ EJEMPLOS = Seccion(
             "        revelar('La coartada coincide.')!\n"
             "    fin!\n"
             "    sino inicio\n"
-            "        revelar('Pista fallida: revisa la coartada.')!\n"
+            "        revelar('Indicio fallido: revisa la coartada.')!\n"
             "    fin!\n"
             "caso Caso042 cerrado!",
             "La coartada", ejecutable=True,

@@ -53,7 +53,7 @@ class _ControlMixin:
                 tipo="Token inesperado despues de sino",
                 archivo=self.nombre_archivo,
                 linea=self._actual().linea,
-                pista="Despues de 'sino' se esperaba 'evaluar' o 'inicio'.",
+                indicio="Despues de 'sino' se esperaba 'evaluar' o 'inicio'.",
                 descripcion=(
                     f"Se esperaba EVALUAR o INICIO despues de 'sino' pero se "
                     f"encontro {self._actual().tipo.name} ('{self._actual().lexema}')."

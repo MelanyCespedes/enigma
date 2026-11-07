@@ -62,7 +62,7 @@ def test_palabra_reservada_como_nombre_da_un_mensaje_claro():
         _parsear(codigo)
     assert info.value.tipo == "Palabra reservada"
     assert "'y'" in info.value.descripcion
-    assert "reservada" in info.value.pista
+    assert "reservada" in info.value.indicio
 
 
 def test_palabra_reservada_valor_como_nombre_de_parametro():

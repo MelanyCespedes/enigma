@@ -87,11 +87,14 @@ El detalle de uso va en el manual de usuario.
 - **Editor** con pestañas, números de línea, resaltado de sintaxis y búsqueda (`Ctrl+F`).
 - **Compilar** y **Ejecutar caso**, con el resultado en el panel inferior (Salida y Terminal).
   `consultar` pide el dato escribiendo en el mismo panel.
-- **Advertencias**: al compilar sin errores, el panel avisa de pistas sin usar, código después
-  de `concluir`, escenas sin `concluir` y parámetros sin usar. El caso se puede ejecutar igual.
+- **Advertencias**: el panel avisa de pistas sin usar, código después de `concluir` y parámetros
+  sin usar (una escena sin `concluir` es un error, no una advertencia). Siguen la misma idea de dos pasos: primero un resumen por tipo
+  (sin decir dónde) y, si compilas de nuevo sin cambiarlas, el detalle con archivo y línea.
+  Salen también cuando hay un error (en un error de sintaxis, solo si lo que falta es un `!`).
+  El caso se puede ejecutar igual.
 - **Guía del detective** (`F1`): consulta del lenguaje con ejemplos que se insertan en el editor.
-- **Constructor de pistas**: arma código con formularios y lo valida con el compilador.
-- **Innovación, errores en dos pasos**: ante un error el IDE primero da una *pista* que orienta
+- **Constructor de bloques**: arma código con formularios y lo valida con el compilador.
+- **Innovación, errores en dos pasos**: ante un error el IDE primero da un *indicio* que orienta
   sin decir dónde está; si repites el mismo error, muestra la explicación completa con
   archivo, línea y causa posible.
 
@@ -132,9 +135,9 @@ enigma/
 │   ├── semantic.py        Valida tipos, alcances, constantes, llamadas…
 │   ├── advertencias.py    Avisos que no detienen el programa (pista sin usar, código inalcanzable…)
 │   ├── interpreter.py     Ejecuta el AST
-│   └── errors.py          Jerarquía de errores (Pista Fallida de Razonamiento)
+│   └── errors.py          Jerarquía de errores (Indicio Fallido de Razonamiento)
 ├── gui/               El IDE en tkinter (ventana, editor, árbol, panel de salida, guías)
-│   ├── pistas.py          Pistas de error de la innovación
+│   ├── indicios.py        Indicios de error de la innovación
 │   └── assets/            Logo e iconos (los genera herramientas/)
 ├── herramientas/      Scripts que generan el logo, los iconos y el informe de pruebas
 ├── tests/             Pruebas con pytest

@@ -60,7 +60,7 @@ def test_variable_no_declarada_lanza_error():
         analizar(programa(cuerpo))
 
     assert info.value.linea == 5
-    assert "y" in info.value.pista
+    assert "y" in info.value.indicio
 
 
 def test_reasignar_hecho_lanza_error():
@@ -70,7 +70,7 @@ def test_reasignar_hecho_lanza_error():
     with pytest.raises(ErrorSemantico) as info:
         analizar(programa(cuerpo, globales=globales))
 
-    assert "hecho" in info.value.pista
+    assert "hecho" in info.value.indicio
 
 
 def test_asignar_expresion_a_entero_lanza_error():
@@ -130,6 +130,35 @@ def test_concluir_fuera_de_escena_lanza_error():
 
     with pytest.raises(ErrorSemantico):
         analizar(programa(cuerpo))
+
+
+def test_escena_sin_concluir_lanza_error():
+    escena = Escena(
+        nombre="Vacia", parametros=[], tipo_retorno="entero",
+        cuerpo=[Revelar(argumentos=[expresion("hola")], linea=3)], linea=2,
+    )
+
+    with pytest.raises(ErrorSemantico) as info:
+        analizar(programa([], funciones={"Vacia": escena}))
+
+    assert info.value.linea == 2
+    assert "Vacia" in info.value.indicio and "concluir" in info.value.indicio
+
+
+def test_escena_con_concluir_dentro_de_un_condicional_es_valida():
+    _analizar_codigo(
+        "escena Signo(n: entero)::entero inicio\n"
+        "    evaluar si (n < 0) inicio\n        concluir 0!\n    fin!\n"
+        "    concluir n!\nfin!\n"
+        "caso Prueba abierto\n    revelar(resolver Signo(3))!\ncaso Prueba cerrado!"
+    )
+
+
+def test_proceso_sin_concluir_es_valido():
+    _analizar_codigo(
+        "proceso Hablar() inicio\n    revelar('hola')!\nfin!\n"
+        "caso Prueba abierto\n    resolver Hablar()!\ncaso Prueba cerrado!"
+    )
 
 # ---------- pistas declaradas con sin_pista ----------
 

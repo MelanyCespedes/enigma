@@ -35,7 +35,7 @@ class _Parser(_ParserBase, _SentenciasMixin, _ExpresionesMixin, _ControlMixin, _
                     tipo="Funcion duplicada",
                     archivo=self.nombre_archivo,
                     linea=funcion.linea,
-                    pista=f"Ya existe una funcion llamada '{funcion.nombre}' en este archivo.",
+                    indicio=f"Ya existe una funcion llamada '{funcion.nombre}' en este archivo.",
                     descripcion=f"La funcion '{funcion.nombre}' esta declarada mas de una vez en {self.nombre_archivo}.",
                     causa_posible="Revisa que no hayas repetido el nombre de una escena/proceso.",
                 )
@@ -76,7 +76,7 @@ class _Parser(_ParserBase, _SentenciasMixin, _ExpresionesMixin, _ControlMixin, _
                 tipo="Nombre de caso no coincide",
                 archivo=self.nombre_archivo,
                 linea=nombre_cierre.linea,
-                pista="El nombre del caso al cerrar debe ser igual al de la apertura.",
+                indicio="El nombre del caso al cerrar debe ser igual al de la apertura.",
                 descripcion=(
                     f"El caso se abrio como '{nombre.lexema}' pero se cierra "
                     f"como '{nombre_cierre.lexema}'."

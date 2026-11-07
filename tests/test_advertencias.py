@@ -104,22 +104,6 @@ def test_concluir_dentro_de_un_if_no_hace_inalcanzable_lo_de_afuera():
     assert _advertencias(codigo) == []
 
 
-def test_escena_sin_concluir():
-    codigo = """
-    escena Vacia()::entero inicio
-        revelar('hola')!
-    fin!
-    caso Prueba abierto
-        pista r = entero(valor: 0)!
-        revelar(r)!
-    caso Prueba cerrado!
-    """
-    resultado = _advertencias(codigo)
-    assert len(resultado) == 1
-    assert "no tiene 'concluir'" in resultado[0].descripcion
-    assert resultado[0].linea == 2
-
-
 def test_proceso_sin_concluir_es_normal():
     codigo = """
     proceso Hablar() inicio
@@ -160,3 +144,130 @@ def test_formato_igual_al_de_los_errores():
     assert lineas[2] == "Linea: 3"
     assert lineas[3].startswith("Descripcion: ")
     assert lineas[4].startswith("Posible causa: ")
+
+
+# ---------- resumen de la primera vez (sin decir donde) ----------
+
+
+def test_cada_advertencia_tiene_su_tipo():
+    codigo = """
+    escena Vacia(a: entero)::entero inicio
+        concluir 1!
+    fin!
+    escena Primero(uno: entero, dos: entero)::entero inicio
+        concluir uno!
+        revelar('nunca')!
+    fin!
+    caso Prueba abierto
+        pista olvidada = entero(valor: 2)!
+        revelar(resolver Primero(1, 2))!
+    caso Prueba cerrado!
+    """
+    tipos = sorted(a.tipo for a in _advertencias(codigo))
+    assert tipos == sorted([
+        "parametro_sin_usar", "parametro_sin_usar", "codigo_inalcanzable", "pista_sin_usar",
+    ])
+
+
+def test_resumen_cuenta_por_tipo_y_no_dice_donde():
+    from core.advertencias import resumen_por_tipo
+
+    codigo = """
+    escena Vacia(a: entero, b: entero)::entero inicio
+        concluir 1!
+    fin!
+    caso Prueba abierto
+        pista olvidada = entero(valor: 2)!
+        revelar(resolver Vacia(1, 2))!
+    caso Prueba cerrado!
+    """
+    resumen = resumen_por_tipo(_advertencias(codigo))
+    assert resumen == [
+        "1 pista declarada que nunca se usa",
+        "2 parámetros que nunca se usan",
+    ]
+    texto = " ".join(resumen)
+    assert "olvidada" not in texto and "Vacia" not in texto  # no revela nombres ni lineas
+
+
+def test_resumen_sin_advertencias_esta_vacio():
+    from core.advertencias import resumen_por_tipo
+
+    assert resumen_por_tipo([]) == []
+
+
+def test_firma_distingue_una_advertencia_de_otra():
+    codigo = """
+    caso Prueba abierto
+        pista uno = entero(valor: 1)!
+        pista dos = entero(valor: 2)!
+    caso Prueba cerrado!
+    """
+    a, b = _advertencias(codigo)
+    assert a.firma != b.firma
+    assert a.firma == a.firma
+
+
+# ---------- advertencias aunque falte un '!' ----------
+
+
+def _tras_error(codigo: str):
+    import pytest
+
+    from core.advertencias import advertencias_tras_error_de_sintaxis
+    from core.errors import ErrorSintactico
+    from core.lexer import tokenizar
+    from core.parser import parsear
+
+    tokens = tokenizar(codigo, "prueba.eng")
+    with pytest.raises(ErrorSintactico) as info:
+        parsear(tokens, "prueba.eng")
+    copia = list(tokens)
+    resultado = advertencias_tras_error_de_sintaxis(tokens, "prueba.eng", info.value)
+    assert tokens == copia  # no modifica los tokens originales
+    return resultado
+
+
+def test_falta_un_sello_pero_aun_se_avisa_de_lo_demas():
+    # el ejemplo de la guia, al que le falta el '!' del segundo 'fin'
+    codigo = """
+    escena Vacia(a: entero)::entero inicio
+        concluir 1!
+    fin!
+    escena Primero(uno: entero, dos: entero)::entero inicio
+        concluir uno!
+        revelar('nunca')!
+    fin
+    caso Advertencias abierto
+        pista usada = entero(valor: 1)!
+        pista olvidada = entero(valor: 2)!
+        revelar(usada)!
+        revelar(resolver Primero(1, 2))!
+    caso Advertencias cerrado!
+    """
+    tipos = sorted(a.tipo for a in _tras_error(codigo))
+    assert tipos == sorted([
+        "parametro_sin_usar", "parametro_sin_usar", "codigo_inalcanzable", "pista_sin_usar",
+    ])
+
+
+def test_faltan_varios_sellos():
+    codigo = """
+    caso Prueba abierto
+        pista olvidada = entero(valor: 2)
+        pista usada = entero(valor: 1)
+        revelar(usada)
+    caso Prueba cerrado!
+    """
+    resultado = _tras_error(codigo)
+    assert len(resultado) == 1 and "olvidada" in resultado[0].descripcion
+
+
+def test_si_falta_otra_cosa_no_se_inventan_advertencias():
+    codigo = """
+    caso Prueba abierto
+        pista olvidada = entero(valor: 2)!
+        revelar('hola'!
+    caso Prueba cerrado!
+    """
+    assert _tras_error(codigo) == []

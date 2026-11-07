@@ -96,7 +96,7 @@ class VentanaPrincipal(tk.Tk):
                 self.arbol.obtener_directorio_proyecto(),
             ),
             guardar_archivos_abiertos=self.editor.guardar_todos,
-            on_pista=lambda texto: self.derecha.rapida.mostrar_pista(texto),
+            on_indicio=lambda texto: self.derecha.rapida.mostrar_indicio(texto),
             on_evento=self._evento_panel,
         )
         centro.add(self.editor, weight=4)
@@ -144,7 +144,7 @@ class VentanaPrincipal(tk.Tk):
         ayuda = self._crear_menu(barra, "Ayuda")
         ayuda.add_command(label="Guía rápida", command=self.mostrar_rapida)
         ayuda.add_command(label="Guía del detective", accelerator="F1", command=self.alternar_guia)
-        ayuda.add_command(label="Constructor de pistas", command=self.abrir_constructor)
+        ayuda.add_command(label="Constructor de bloques", command=self.abrir_constructor)
         ayuda.add_separator()
         for seccion in SECCIONES:
             ayuda.add_command(
@@ -220,7 +220,7 @@ class VentanaPrincipal(tk.Tk):
             self.mostrar_guia()
 
     def abrir_constructor(self) -> None:
-        """Muestra el Constructor de pistas en la columna derecha."""
+        """Muestra el Constructor de bloques en la columna derecha."""
         self.mostrar_derecha()
         self.derecha.mostrar_constructor()
 

@@ -51,7 +51,7 @@ class TablaSimbolos:
                 tipo="semantica",
                 archivo=self.archivo,
                 linea=linea,
-                pista=f"La pista '{nombre}' ya tiene dueno en este bloque.",
+                indicio=f"La pista '{nombre}' ya tiene dueno en este bloque.",
                 descripcion=(
                     f"'{nombre}' ya fue declarada en la linea {previo.linea} "
                     f"dentro del ambito '{self.ambito_actual}'."

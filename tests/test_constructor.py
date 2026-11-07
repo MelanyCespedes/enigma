@@ -108,7 +108,7 @@ def test_importar_genera_la_directiva():
 
 
 def test_los_mensajes_de_error_no_usan_nombres_internos_ni_lineas():
-    from gui.pistas import es_orientadora
+    from gui.indicios import es_orientadora
     for codigo in ("evaluar si (a >>> 1) inicio\n  revelar(1)!\nfin!", "pista x = entero(valor: 1.5)!", "pista = 3!"):
         mensaje = cc.validar(codigo)
         assert mensaje and es_orientadora(mensaje), (codigo, mensaje)

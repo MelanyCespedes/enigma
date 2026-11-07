@@ -1,10 +1,10 @@
-"""Columna derecha del IDE: la Guia rapida (por defecto), la Guia del detective o el Constructor de pistas."""
+"""Columna derecha del IDE: la Guia rapida (por defecto), la Guia del detective o el Constructor de bloques."""
 from __future__ import annotations
 
 import tkinter as tk
 
 from gui import tema
-from gui.constructor_pistas import ConstructorPistas
+from gui.constructor_bloques import ConstructorBloques
 from gui.guia_detective import GuiaDetective
 from gui.guia_rapida import GuiaRapida
 
@@ -26,7 +26,7 @@ class PanelDerecho(tk.Frame):
 
         self.rapida = GuiaRapida(self, al_ocultar=al_ocultar, al_constructor=self.mostrar_constructor)
         self.detective = GuiaDetective(self, al_insertar=al_insertar, al_cerrar=self.mostrar_rapida)
-        self.constructor = ConstructorPistas(self, al_insertar=al_insertar_en_editor, al_cerrar=self.mostrar_rapida)
+        self.constructor = ConstructorBloques(self, al_insertar=al_insertar_en_editor, al_cerrar=self.mostrar_rapida)
         self.vista = RAPIDA
         self.rapida.pack(side="left", fill="both", expand=True)
 

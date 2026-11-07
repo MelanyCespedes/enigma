@@ -106,7 +106,7 @@ class VentanaPrincipal(tk.Tk):
             horizontal,
             al_insertar=self.insertar_desde_guia,
             al_ocultar=self.ocultar_derecha,
-            al_insertar_en_editor=self.editor.insertar_texto,
+            al_insertar_constructor=self.insertar_desde_constructor,
             al_cambiar_vista=self._vista_cambiada,
         )
         self.derecha.configure(width=ANCHO_RAPIDA, height=100)
@@ -223,6 +223,13 @@ class VentanaPrincipal(tk.Tk):
         """Muestra el Constructor de bloques en la columna derecha."""
         self.mostrar_derecha()
         self.derecha.mostrar_constructor()
+
+    def insertar_desde_constructor(self, texto: str, nombre: str) -> bool:
+        """Con un archivo abierto, el bloque se escribe en el cursor (asi se pueden ir sumando bloques).
+        Sin ningun archivo abierto, sigue el flujo de la Guia: crea un proyecto y un archivo nuevos."""
+        if self.editor.obtener_ruta_activa():
+            return self.editor.insertar_texto(texto)
+        return self.insertar_desde_guia(texto, nombre)
 
     def insertar_desde_guia(self, texto: str, nombre: str = "codigo_enigma") -> bool:
         """Crea un archivo nuevo con el contenido seleccionado en la Guia."""

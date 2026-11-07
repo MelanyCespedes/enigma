@@ -15,8 +15,9 @@ FAMILIA = "Segoe UI"
 class ConstructorBloques(tk.Frame):
     """Selector de bloques arriba, formulario apilado en medio y vista previa abajo.
 
-    al_insertar(texto) -> bool  inserta el codigo en el editor (True si se pudo)
-    al_cerrar()                 vuelve a la guia rapida
+    al_insertar(texto, nombre) -> bool  escribe el codigo en el archivo abierto o, si no hay ninguno, crea
+                                        un proyecto y un archivo nuevos como la Guia (True si se pudo)
+    al_cerrar()                         vuelve a la guia rapida
     """
 
     def __init__(self, master, al_insertar, al_cerrar):
@@ -200,7 +201,7 @@ class ConstructorBloques(tk.Frame):
                 text="●  Corrige el formulario antes de insertar: " + self._estado.cget("text")[3:], fg=tema.ERROR
             )
             return
-        if self._al_insertar(self.codigo()):
+        if self._al_insertar(self.codigo(), self._bloque.titulo):
             self._parpadear(self._boton_insertar, "¡Insertado!")
 
     def _copiar(self) -> None:

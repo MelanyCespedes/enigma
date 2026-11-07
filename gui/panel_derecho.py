@@ -16,17 +16,19 @@ CONSTRUCTOR = "constructor"
 class PanelDerecho(tk.Frame):
     """Alterna entre las tres vistas. 'al_cambiar_vista(vista)' permite ajustar el ancho.
 
-    al_insertar_en_editor(texto) -> bool  lo usa el Constructor para escribir en el archivo activo.
+    al_insertar(texto, nombre) -> bool              la Guia del detective crea un proyecto y un archivo nuevos
+    al_insertar_constructor(texto, nombre) -> bool  el Constructor de bloques escribe en el archivo abierto
+                                                    (o, si no hay ninguno, hace lo mismo que la Guia)
     """
 
-    def __init__(self, master, al_insertar, al_ocultar, al_insertar_en_editor, al_cambiar_vista=None):
+    def __init__(self, master, al_insertar, al_ocultar, al_insertar_constructor, al_cambiar_vista=None):
         super().__init__(master, bg=tema.FONDO)
         self._al_cambiar_vista = al_cambiar_vista
         tk.Frame(self, width=1, bg=tema.BORDE).pack(side="left", fill="y")
 
         self.rapida = GuiaRapida(self, al_ocultar=al_ocultar, al_constructor=self.mostrar_constructor)
         self.detective = GuiaDetective(self, al_insertar=al_insertar, al_cerrar=self.mostrar_rapida)
-        self.constructor = ConstructorBloques(self, al_insertar=al_insertar_en_editor, al_cerrar=self.mostrar_rapida)
+        self.constructor = ConstructorBloques(self, al_insertar=al_insertar_constructor, al_cerrar=self.mostrar_rapida)
         self.vista = RAPIDA
         self.rapida.pack(side="left", fill="both", expand=True)
 

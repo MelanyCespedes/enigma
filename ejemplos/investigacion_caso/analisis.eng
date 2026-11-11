@@ -1,0 +1,11 @@
+{ Biblioteca de analisis: funciones que usa el caso principal }
+escena EsMayorDeEdad(edad: entero)::declaracion inicio
+    evaluar si (edad >= 18) inicio
+        concluir culpable!
+    fin!
+    concluir NoCulpable!
+fin!
+
+caso Analisis abierto
+    revelar('Biblioteca de analisis cargada')!
+caso Analisis cerrado!

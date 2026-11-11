@@ -7,6 +7,8 @@ venv/
 
 # Configuración local del IDE de Enigma (cuál archivo es el principal, por persona)
 .enigma_proyecto.json
+# ...excepto el del proyecto de ejemplo, que ya trae marcado su archivo principal
+!ejemplos/investigacion_caso/.enigma_proyecto.json
 
 # Entornos virtuales con otros nombres comunes
 .venv/

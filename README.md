@@ -59,6 +59,16 @@ El proyecto incluye retos completos que el estudiante puede abrir y ejecutar en 
 - [`acertijo_sospechosos`](ejemplos/acertijo_sospechosos/galeria_sospechosos.eng): analiza coartadas
   y huellas para deducir quién robó una obra del museo.
 
+## Proyecto de ejemplo con varios archivos
+
+[`ejemplos/investigacion_caso`](ejemplos/investigacion_caso) es un proyecto de dos archivos que muestra
+las importaciones: `principal.eng` (el caso `InvestigacionCaso`) importa con `#expediente <analisis.eng>`
+la biblioteca `analisis.eng`. Ya trae marcado su archivo principal, así que se abre y se ejecuta directamente:
+
+```bash
+python main.py ejemplos/investigacion_caso
+```
+
 Resumen de la sintaxis
 
 | Concepto | Palabras reservadas |

@@ -1,0 +1,23 @@
+#expediente <analisis.eng>
+
+hecho MAX_INTENTOS = entero(valor: 3)!
+
+proceso VerificarSospechoso(nombre: expresion, edad: entero) inicio
+    evaluar si (resolver EsMayorDeEdad(edad)) inicio
+        revelar('El sospechoso es mayor de edad: ', nombre)!
+    fin!
+    sino inicio
+        revelar('El sospechoso es menor de edad: ', nombre)!
+    fin!
+fin!
+
+caso InvestigacionCaso abierto
+    pista sospechoso1 = expresion(valor: 'Carlos')!
+    pista edadSospechoso = entero(valor: 25)!
+    pista contador = entero(valor: 1)!
+    seguir mientras (contador <= MAX_INTENTOS) inicio
+        revelar('Ronda de interrogatorio numero: ', contador)!
+        contador = conectar(contador, 1)!
+    fin!
+    resolver VerificarSospechoso(sospechoso1, edadSospechoso)!
+caso InvestigacionCaso cerrado!
